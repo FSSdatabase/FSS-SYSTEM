@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/fss-system/",   // change to "/" if hosting on custom domain
+  base: "./",   // change to "/" if hosting on custom domain
 });
