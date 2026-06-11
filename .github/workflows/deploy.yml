@@ -1,9 +1,19 @@
+Good catch — that's a different/generic template, not the right one. Let's replace it with the correct content.
+
+**In the GitHub editor:**
+
+1. Click inside the text area
+2. Press **Ctrl + A** (select everything currently there)
+3. Press **Delete** (clear it)
+4. **Copy and paste this exact content** in its place:
+
+```yaml
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,37 +22,41 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        env:
-          REACT_APP_GOOGLE_SHEETS_URL: ${{ secrets.REACT_APP_GOOGLE_SHEETS_URL }}
-        run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./build
-
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
+```
+
+5. Scroll down, click the green **Commit changes** button
+
+Let me know once committed — next we'll add the secret (`VITE_GAS_URL`) and turn on Pages.
