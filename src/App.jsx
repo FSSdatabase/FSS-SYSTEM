@@ -22,9 +22,9 @@ export default function App() {
     academics:  <Academics  />,
     reports:    <Reports    />,
     timetable:  <Timetable  />,
-    manage:     <Manage     />,
+manage:     <Manage     />,
+    placementpromotion: <PlacementPromotion />,
   };
-
   return (
     <Layout page={page} setPage={setPage}>
       {pages[page] || pages.dashboard}
