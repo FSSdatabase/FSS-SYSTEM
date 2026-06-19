@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarCheck, BookMarked,
   TrendingUp, FileText, Banknote, Calendar, Settings2,
-  BookOpen, Menu, GraduationCap, RefreshCw, Wifi, WifiOff,
+BookOpen, Menu, GraduationCap, RefreshCw, Wifi, WifiOff, Award,
+} from "lucide-react";
 } from "lucide-react";
 import { NAVY, GOLD } from "../data/constants";
 import { useApp } from "../context/AppContext";
