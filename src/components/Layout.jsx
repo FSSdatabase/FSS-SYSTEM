@@ -4,8 +4,6 @@ import {
   TrendingUp, FileText, Banknote, Calendar, Settings2,
 BookOpen, Menu, GraduationCap, RefreshCw, Wifi, WifiOff, Award,
 } from "lucide-react";
-} from "lucide-react";
-} from "lucide-react";
 import { NAVY, GOLD } from "../data/constants";
 import { useApp } from "../context/AppContext";
 
