@@ -17,7 +17,8 @@ const NAV = [
   { id:"academics",  label:"Academics",          Icon:TrendingUp      },
   { id:"reports",    label:"Reports",            Icon:FileText        },
   { id:"timetable",  label:"Timetable",          Icon:Calendar        },
-  { id:"manage",     label:"Manage",             Icon:Settings2       },
+{ id:"manage",     label:"Manage",             Icon:Settings2       },
+  { id:"placementpromotion", label:"Placement & Promotion", Icon:Award },
 ];
 
 export default function Layout({ page, setPage, children }) {
