@@ -9,6 +9,7 @@ import Academics  from "./pages/Academics";
 import Reports    from "./pages/Reports";
 import Timetable  from "./pages/Timetable";
 import Manage     from "./pages/Manage";
+import PlacementPromotion from "./pages/placementpromotion/placementpromotion";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
