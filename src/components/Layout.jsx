@@ -5,6 +5,7 @@ import {
 BookOpen, Menu, GraduationCap, RefreshCw, Wifi, WifiOff, Award,
 } from "lucide-react";
 } from "lucide-react";
+} from "lucide-react";
 import { NAVY, GOLD } from "../data/constants";
 import { useApp } from "../context/AppContext";
 
@@ -17,6 +18,7 @@ const NAV = [
   { id:"academics",  label:"Academics",          Icon:TrendingUp      },
   { id:"reports",    label:"Reports",            Icon:FileText        },
   { id:"timetable",  label:"Timetable",          Icon:Calendar        },
+{ id:"manage",     label:"Manage",             Icon:Settings2       },
 { id:"manage",     label:"Manage",             Icon:Settings2       },
   { id:"placementpromotion", label:"Placement & Promotion", Icon:Award },
 ];
