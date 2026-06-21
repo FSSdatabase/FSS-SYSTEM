@@ -40,7 +40,7 @@ export default function App() {
   };
 
   const pages = {
-    dashboard:  <Dashboard  setPage={setPage} />,
+dashboard:  <Dashboard  setPage={setPage} user={user} />,
     students:   <Students   />,
     attendance: <Attendance />,
     daar:       <DAAR       />,
