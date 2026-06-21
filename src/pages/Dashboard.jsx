@@ -4,8 +4,9 @@ import { useApp } from "../context/AppContext";
 import { Card } from "../components/shared";
 import { naira } from "../utils/helpers";
 
-export default function Dashboard({ setPage }) {
+export default function Dashboard({ setPage, user }) {
   const { students, staffList, daarEntries, feeData, settings } = useApp();
+  const isDirector = user?.role === "director";
 
   const active    = students.filter(s => s.status === "Active");
   const convStu   = active.filter(s => s.conv);
@@ -44,7 +45,7 @@ export default function Dashboard({ setPage }) {
     { label:"Mark Attendance",    fn:() => setPage("attendance"), bg:"#4B2E83" },
     { label:"Submit DAAR",        fn:() => setPage("daar"),       bg:"#2E5E4E" },
     { label:"Enter CA Scores",    fn:() => setPage("academics"),  bg:"#b45309" },
-    { label:"View Fees",          fn:() => setPage("fees"),       bg:"#0f766e" },
+    ...(isDirector ? [{ label:"View Fees", fn:() => setPage("fees"), bg:"#0f766e" }] : []),
     { label:"Generate Report",    fn:() => setPage("reports"),    bg:"#475569" },
   ];
 
@@ -56,7 +57,7 @@ export default function Dashboard({ setPage }) {
           { label:"Total Students", value:active.length,     sub:"All sections",        color:NAVY,      Icon:Users         },
           { label:"Staff",          value:staffList.filter(s=>s.status==="Active").length, sub:"Active staff", color:"#4B2E83", Icon:GraduationCap },
           { label:"DAAR Today",     value:daarEntries.filter(e=>e.date===new Date().toISOString().slice(0,10)).length, sub:"Lessons logged today", color:"#2E5E4E", Icon:BookMarked },
-          { label:"Fees Collected", value:naira(totalCollected), sub:`${naira(totalOutstanding)} outstanding`, color:"#b45309", Icon:Banknote },
+          ...(isDirector ? [{ label:"Fees Collected", value:naira(totalCollected), sub:`${naira(totalOutstanding)} outstanding`, color:"#b45309", Icon:Banknote }] : []),
         ].map(({ label, value, sub, color, Icon }) => (
           <Card key={label} style={{ padding:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -116,8 +117,10 @@ export default function Dashboard({ setPage }) {
             {[
               { label:"Conventional", v:convStu.length,                              c:NAVY },
               { label:"Islamiyyah",   v:islStu.length,                               c:"#0f766e" },
-              { label:"Collected",    v:naira(totalCollected),                       c:"#15803d" },
-              { label:"Outstanding",  v:naira(totalOutstanding),                     c:"#dc2626" },
+              ...(isDirector ? [
+                { label:"Collected",    v:naira(totalCollected),                       c:"#15803d" },
+                { label:"Outstanding",  v:naira(totalOutstanding),                     c:"#dc2626" },
+              ] : []),
             ].map(({ label, v, c }) => (
               <div key={label} style={{ padding:"8px 10px", background:"#f8fafc", borderRadius:8 }}>
                 <div style={{ fontSize:8, fontWeight:700, color:"#94a3b8", letterSpacing:.4, marginBottom:2 }}>{label.toUpperCase()}</div>
