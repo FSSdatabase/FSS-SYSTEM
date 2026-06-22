@@ -7,7 +7,8 @@ import { naira } from "../utils/helpers";
 export default function Dashboard({ setPage, user }) {
   const { students, staffList, daarEntries, feeData, settings } = useApp();
   const isDirector = user?.role === "director";
-
+const isDirector = user?.role === "director";
+console.log("DEBUG — current user object:", user);
   const active    = students.filter(s => s.status === "Active");
   const convStu   = active.filter(s => s.conv);
   const islStu    = active.filter(s => s.isl);
