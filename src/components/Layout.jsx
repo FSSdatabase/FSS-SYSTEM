@@ -29,7 +29,7 @@ const NAV = [
   { id:"students",   label:"Student Registry",  Icon:Users,           roles:["director","assistant"] },
   { id:"attendance", label:"Attendance",         Icon:CalendarCheck,   roles:null },
   { id:"daar",       label:"DAAR",               Icon:BookMarked,      roles:null },
-  { id:"fees",       label:"Fees",               Icon:Banknote,        roles:["director","assistant"] },
+  { id:"fees",       label:"Fees",               Icon:Banknote,        roles:["director"] },
   { id:"academics",  label:"Academics",          Icon:TrendingUp,      roles:null },
   { id:"reports",    label:"Reports",            Icon:FileText,        roles:["director","assistant"] },
   { id:"timetable",  label:"Timetable",          Icon:Calendar,        roles:null },
