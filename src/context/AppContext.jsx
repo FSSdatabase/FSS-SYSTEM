@@ -73,14 +73,19 @@ export function AppProvider({ children }) {
 
   // ── DAAR helpers ───────────────────────────────────────────────────────
   const addDaarEntry = async (entry) => {
-    const result = await api.saveDAAREntry(entry);
-    if (result === null) {
+    try {
+      const result = await api.saveDAAREntry(entry);
+      if (result === null) {
+        // Offline — add locally only
+        setDaarEntries(prev => [entry, ...prev]);
+        return { ok: true };
+      }
       setDaarEntries(prev => [entry, ...prev]);
       return { ok: true };
+    } catch (err) {
+      // Backend rejected — permission error or other
+      return { ok: false, error: err.message };
     }
-    if (result && result.ok === false) return result;
-    setDaarEntries(prev => [entry, ...prev]);
-    return { ok: true };
   };
 
   // ── Student / Staff CRUD ───────────────────────────────────────────────
