@@ -34,8 +34,7 @@ const NAV = [
   { id:"reports",    label:"Reports",            Icon:FileText,        roles:["director","assistant"] },
   { id:"timetable",  label:"Timetable",          Icon:Calendar,        roles:null },
   { id:"manage",     label:"Manage",             Icon:Settings2,       roles:["director"] },
-  { id:"placementpromotion", label:"Placement & Promotion", Icon:Award, roles:["director","assistant"] },
-];
+{ id:"placementpromotion", label:"Placement & Promotion", Icon:Award, roles:["director","assistant","teacher"] },
 
 const ROLE_LABEL = { director: "Director", assistant: "Assistant", teacher: "Teacher" };
 
