@@ -73,12 +73,15 @@ export function AppProvider({ children }) {
 
   // ── DAAR helpers ───────────────────────────────────────────────────────
 const addDaarEntry = async (entry) => {
-  const result = await api.saveDAAREntry(entry);
-  if (result === null) {
-    // Offline — add locally only
+    const result = await api.saveDAAREntry(entry);
+    if (result === null) {
+      setDaarEntries(prev => [entry, ...prev]);
+      return { ok: true };
+    }
+    if (!result.ok) return result;
     setDaarEntries(prev => [entry, ...prev]);
     return { ok: true };
-  }
+  };
   if (!result.ok) return result; // permission error — don't add locally
   setDaarEntries(prev => [entry, ...prev]);
   return { ok: true };
