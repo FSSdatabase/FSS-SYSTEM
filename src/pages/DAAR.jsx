@@ -24,10 +24,17 @@ export default function DAAR() {
 
   const canSubmit = form.subject && form.teacher && form.topic && form.date;
 
+  const [submitError, setSubmitError] = useState("");
+
   const submit = async () => {
     if (!canSubmit) return;
+    setSubmitError("");
     const entry = { ...form, id:uid(), time:nowTime() };
-    await addDaarEntry(entry);
+    const result = await addDaarEntry(entry);
+    if (result && !result.ok) {
+      setSubmitError(result.error || "Submission failed.");
+      return;
+    }
     setOk(true);
     setTimeout(() => {
       setOk(false);
