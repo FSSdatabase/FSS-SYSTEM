@@ -14,14 +14,14 @@ export function AppProvider({ children }) {
     session:  "2025/2026",
     feeRates: { ...DEFAULT_FEE_RATES },
   });
-  const [attendance,  setAttendance]  = useState({});  // key: "date|type|cls"
+  const [attendance,  setAttendance]  = useState({});
   const [daarEntries, setDaarEntries] = useState([]);
-  const [feeData,     setFeeData]     = useState({});  // key: admNo
-  const [scores,      setScores]      = useState({});  // key: "cls|sub|term"
+  const [feeData,     setFeeData]     = useState({});
+  const [scores,      setScores]      = useState({});
   const [loading,     setLoading]     = useState(false);
   const [online,      setOnline]      = useState(false);
 
-  // ── Bootstrap: try to pull live data from GAS ──────────────────────────
+  // ── Bootstrap ──────────────────────────────────────────────────────────
   const bootstrap = useCallback(async () => {
     setLoading(true);
     try {
@@ -53,17 +53,17 @@ export function AppProvider({ children }) {
   };
 
   // ── Fee helpers ────────────────────────────────────────────────────────
-  const getFD  = (admNo) => feeData[admNo] || { discount:0, concession:"", arrears:0, t1:0, t2:0, t3:0 };
-  const setFD  = (admNo, field, val) => {
+  const getFD = (admNo) => feeData[admNo] || { discount:0, concession:"", arrears:0, t1:0, t2:0, t3:0 };
+  const setFD = (admNo, field, val) => {
     const updated = { ...getFD(admNo), [field]: val };
     setFeeData(prev => ({ ...prev, [admNo]: updated }));
     api.saveFee({ admNo, session: settings.session, ...updated });
   };
 
   // ── Score helpers ──────────────────────────────────────────────────────
-  const sKey      = (cls, sub, term) => `${cls}|${sub}|${term}`;
-  const getScore  = (cls, sub, term, admNo) => (scores[sKey(cls, sub, term)] || {})[admNo] || { ca1:"", ca2:"", ca3:"", exam:"" };
-  const setScore  = (cls, sub, term, admNo, field, val) => {
+  const sKey     = (cls, sub, term) => `${cls}|${sub}|${term}`;
+  const getScore = (cls, sub, term, admNo) => (scores[sKey(cls, sub, term)] || {})[admNo] || { ca1:"", ca2:"", ca3:"", exam:"" };
+  const setScore = (cls, sub, term, admNo, field, val) => {
     const k = sKey(cls, sub, term);
     setScores(prev => ({
       ...prev,
@@ -72,7 +72,7 @@ export function AppProvider({ children }) {
   };
 
   // ── DAAR helpers ───────────────────────────────────────────────────────
-const addDaarEntry = async (entry) => {
+  const addDaarEntry = async (entry) => {
     const result = await api.saveDAAREntry(entry);
     if (result === null) {
       setDaarEntries(prev => [entry, ...prev]);
@@ -82,10 +82,6 @@ const addDaarEntry = async (entry) => {
     setDaarEntries(prev => [entry, ...prev]);
     return { ok: true };
   };
-  if (!result.ok) return result; // permission error — don't add locally
-  setDaarEntries(prev => [entry, ...prev]);
-  return { ok: true };
-};
 
   // ── Student / Staff CRUD ───────────────────────────────────────────────
   const saveStudent = async (mode, student, origAdmNo) => {
