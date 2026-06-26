@@ -17,14 +17,13 @@ export default function DAAR() {
   const [form, setForm] = useState({ ...BLANK_FORM, date:today() });
   const [ok,   setOk]   = useState(false);
   const [df,   setDf]   = useState({ date:today(), cls:"ALL", sub:"ALL" });
+  const [submitError, setSubmitError] = useState("");
 
   const teachers = staffList.filter(s =>
     ["Teacher","Class Teacher","Head of Islamiyyah","Head of Mutawassid","Head of Tahfeez"].includes(s.role)
   );
 
   const canSubmit = form.subject && form.teacher && form.topic && form.date;
-
-  const [submitError, setSubmitError] = useState("");
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -119,7 +118,9 @@ export default function DAAR() {
           </div>
 
           <div style={{ padding:"12px 16px", background:"#f8fafc", borderTop:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            {!canSubmit
+            {submitError
+              ? <span style={{ display:"flex", alignItems:"center", gap:5, color:"#dc2626", fontSize:10 }}><AlertCircle size={12} /> {submitError}</span>
+              : !canSubmit
               ? <span style={{ display:"flex", alignItems:"center", gap:5, color:"#d97706", fontSize:10 }}><AlertCircle size={12} /> Fill all required (*) fields.</span>
               : <span />}
             <button onClick={submit} disabled={!canSubmit} style={{
