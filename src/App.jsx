@@ -1,16 +1,11 @@
 /**
-* UPDATED App.jsx — WITH LOGIN SESSION
-*
-* This is your FULL App.jsx with the login wiring added.
-* Compare against your current version and merge — or just
-* replace the whole file, since the only additions are:
-*   1. Login import + useState for `user`
-*   2. A guard that shows <Login> until someone signs in
-*   3. `user` and `onLogout` passed down to Layout
-*
-* Nothing about your existing page imports or the `pages` object changed.
-*/
-
+ * UPDATED App.jsx — WITH LOGIN SESSION + PERSISTENT AUTH
+ *
+ * Changes from previous version:
+ *   1. user state now reads from localStorage on load (survives refresh/pull-down)
+ *   2. Login saves user to localStorage
+ *   3. Logout clears localStorage
+ */
 import { useState } from "react";
 import Layout    from "./components/Layout";
 import Login     from "./components/Login";
@@ -27,20 +22,34 @@ import PlacementPromotion from "./pages/placementpromotion/placementpromotion";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
-  const [user, setUser] = useState(null);   // null = not logged in
+
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("fss_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // ── Not logged in: show login screen only ──────────────────────
   if (!user) {
-    return <Login onLogin={(loggedInUser) => setUser(loggedInUser)} />;
+    return (
+      <Login onLogin={(loggedInUser) => {
+        setUser(loggedInUser);
+        localStorage.setItem("fss_user", JSON.stringify(loggedInUser));
+      }} />
+    );
   }
 
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem("fss_user");
     setPage("dashboard");
   };
 
   const pages = {
-dashboard:  <Dashboard  setPage={setPage} user={user} />,
+    dashboard:  <Dashboard  setPage={setPage} user={user} />,
     students:   <Students   />,
     attendance: <Attendance />,
     daar:       <DAAR       />,
