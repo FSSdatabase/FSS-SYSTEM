@@ -23,13 +23,18 @@ const post = async (action, payload = {}) => {
       body: JSON.stringify({ action, email: getEmail(), ...payload }),
     });
     const json = await res.json();
-    if (!json.success) throw new Error(json.error || "GAS error");
-    return json.data;
-  } catch (err) {
-    console.error(`[API ERROR] ${action}:`, err.message);
-    return null;
+if (!json.success) {
+  if (json.error && (
+    json.error.includes("not permitted") ||
+    json.error.includes("not assigned") ||
+    json.error.includes("Not logged in") ||
+    json.error.includes("disabled")
+  )) {
+    return { ok: false, error: json.error };
   }
-};
+  throw new Error(json.error || "GAS error");
+}
+return json.data;
 
 export const api = {
   // ── Students ────────────────────────────────────────────────────────────
