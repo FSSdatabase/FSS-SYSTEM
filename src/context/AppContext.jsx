@@ -72,10 +72,17 @@ export function AppProvider({ children }) {
   };
 
   // ── DAAR helpers ───────────────────────────────────────────────────────
-  const addDaarEntry = async (entry) => {
+const addDaarEntry = async (entry) => {
+  const result = await api.saveDAAREntry(entry);
+  if (result === null) {
+    // Offline — add locally only
     setDaarEntries(prev => [entry, ...prev]);
-    await api.saveDAAREntry(entry);
-  };
+    return { ok: true };
+  }
+  if (!result.ok) return result; // permission error — don't add locally
+  setDaarEntries(prev => [entry, ...prev]);
+  return { ok: true };
+};
 
   // ── Student / Staff CRUD ───────────────────────────────────────────────
   const saveStudent = async (mode, student, origAdmNo) => {
