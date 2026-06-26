@@ -6,11 +6,33 @@
 
 const GAS_URL = import.meta.env.VITE_GAS_URL || "";
 
+const GAS_URL = import.meta.env.VITE_GAS_URL || "";
+
+const getEmail = () => {
+  try {
+    const u = localStorage.getItem("fss_user");
+    return u ? JSON.parse(u).email : "";
+  } catch { return ""; }
+};
+
 const post = async (action, payload = {}) => {
   if (!GAS_URL) {
     console.warn(`[OFFLINE] ${action} — GAS_URL not configured. Using local data.`);
     return null;
   }
+  try {
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({ action, email: getEmail(), ...payload }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "GAS error");
+    return json.data;
+  } catch (err) {
+    console.error(`[API ERROR] ${action}:`, err.message);
+    return null;
+  }
+};
   try {
     const res = await fetch(GAS_URL, {
       method: "POST",
