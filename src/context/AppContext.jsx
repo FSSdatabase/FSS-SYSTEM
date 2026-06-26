@@ -78,7 +78,7 @@ export function AppProvider({ children }) {
       setDaarEntries(prev => [entry, ...prev]);
       return { ok: true };
     }
-    if (!result.ok) return result;
+    if (result && result.ok === false) return result;
     setDaarEntries(prev => [entry, ...prev]);
     return { ok: true };
   };
