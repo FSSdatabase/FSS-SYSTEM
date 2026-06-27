@@ -52,7 +52,7 @@ export default function App() {
     dashboard:  <Dashboard  setPage={setPage} user={user} />,
     students:   <Students   />,
     attendance: <Attendance />,
-    daar:       <DAAR       />,
+    daar:       <DAAR       user={user} />,
     fees:       <Fees       />,
     academics:  <Academics  />,
     reports:    <Reports    />,
