@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { NAVY, CONV_NAME, CONV_CLASSES, SUBJECTS } from "../data/constants";
 import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib, PageHeader } from "../components/shared";
 import { today, nowTime, uid } from "../utils/helpers";
 
 const BLANK_FORM = {
-  date:"", cls:"JSS1", subject:"", teacher:"",
+  date:"", cls:"", subject:"", teacher:"",
   topic:"", subtopic:"", method:"", reference:"",
   homework:"", scheme:"Yes", note:"",
 };
@@ -26,19 +26,12 @@ export default function DAAR({ user }) {
   const [ok,   setOk]   = useState(false);
   const [df,   setDf]   = useState({ date:today(), cls:"ALL", sub:"ALL" });
   const [submitError, setSubmitError] = useState("");
-  const isTeacher = user?.role === "teacher";
-  const assignedClasses = isTeacher
-    ? (user?.assignedClasses || "").split(",").map(c => c.trim()).filter(Boolean)
-    : CONV_CLASSES;
-
-  const visibleClasses = assignedClasses.length > 0 ? assignedClasses : CONV_CLASSES;
-  const [submitError, setSubmitError] = useState("");
 
   const teachers = staffList.filter(s =>
     ["Teacher","Class Teacher","Head of Islamiyyah","Head of Mutawassid","Head of Tahfeez"].includes(s.role)
   );
 
-  const canSubmit = form.subject && form.teacher && form.topic && form.date;
+  const canSubmit = form.subject && form.teacher && form.topic && form.date && form.cls;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -52,7 +45,7 @@ export default function DAAR({ user }) {
     setOk(true);
     setTimeout(() => {
       setOk(false);
-      setForm({ ...BLANK_FORM, date:today() });
+      setForm({ ...BLANK_FORM, date:today(), cls:defaultCls });
     }, 2000);
   };
 
@@ -88,7 +81,7 @@ export default function DAAR({ user }) {
             </div>
             <div><Lbl c="CLASS *" />
               <select value={form.cls} onChange={e => set("cls", e.target.value)} style={ib}>
-                {CONV_CLASSES.map(c => <option key={c} value={c}>{CONV_NAME[c]}</option>)}
+                {visibleClasses.map(c => <option key={c} value={c}>{CONV_NAME[c] || c}</option>)}
               </select>
             </div>
             <div><Lbl c="SUBJECT *" />
@@ -158,7 +151,7 @@ export default function DAAR({ user }) {
             <div><Lbl c="CLASS" />
               <select value={df.cls} onChange={e => setDfField("cls", e.target.value)} style={ib}>
                 <option value="ALL">All Classes</option>
-                {CONV_CLASSES.map(c => <option key={c} value={c}>{CONV_NAME[c]}</option>)}
+                {visibleClasses.map(c => <option key={c} value={c}>{CONV_NAME[c] || c}</option>)}
               </select>
             </div>
             <div><Lbl c="SUBJECT" />
