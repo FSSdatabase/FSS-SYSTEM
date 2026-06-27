@@ -11,12 +11,27 @@ const BLANK_FORM = {
   homework:"", scheme:"Yes", note:"",
 };
 
-export default function DAAR() {
+export default function DAAR({ user }) {
   const { staffList, addDaarEntry, daarEntries } = useApp();
+
+  const isTeacher = user?.role === "teacher";
+  const assignedClasses = isTeacher
+    ? (user?.assignedClasses || "").split(",").map(c => c.trim()).filter(Boolean)
+    : CONV_CLASSES;
+  const visibleClasses = assignedClasses.length > 0 ? assignedClasses : CONV_CLASSES;
+  const defaultCls = visibleClasses[0] || "JSS1";
+
   const [view, setView] = useState("submit");
-  const [form, setForm] = useState({ ...BLANK_FORM, date:today() });
+  const [form, setForm] = useState({ ...BLANK_FORM, date:today(), cls:defaultCls });
   const [ok,   setOk]   = useState(false);
   const [df,   setDf]   = useState({ date:today(), cls:"ALL", sub:"ALL" });
+  const [submitError, setSubmitError] = useState("");
+  const isTeacher = user?.role === "teacher";
+  const assignedClasses = isTeacher
+    ? (user?.assignedClasses || "").split(",").map(c => c.trim()).filter(Boolean)
+    : CONV_CLASSES;
+
+  const visibleClasses = assignedClasses.length > 0 ? assignedClasses : CONV_CLASSES;
   const [submitError, setSubmitError] = useState("");
 
   const teachers = staffList.filter(s =>
