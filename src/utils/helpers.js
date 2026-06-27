@@ -28,7 +28,7 @@ export const gradeInfo = (total) => {
 };
 
 export const calcTotal = (sc) => {
-  const vals = [sc.ca1, sc.ca2, sc.ca3, sc.exam].map(Number);
+  const vals = [sc.ca1, sc.ca2, sc.exam].map(Number);
   return vals.some((v) => v === "" || isNaN(v)) ? null : vals.reduce((a, b) => a + b, 0);
 };
 
