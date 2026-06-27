@@ -50,7 +50,7 @@ function ConventionalScores({ students, settings, getScore, setScore }) {
   const pass = totals.filter(t => t >= 40).length;
 
   const onChange = (admNo, field, val) => {
-    const max = field === "exam" ? 70 : 10;
+    const max = field === "exam" ? 60 : 20;
     setScore(cls, sub, trm, admNo, field, val === "" ? "" : Math.min(+val, max));
     setSaved(false);
   };
@@ -80,11 +80,11 @@ function ConventionalScores({ students, settings, getScore, setScore }) {
       </FilterBar>
 
       <Card style={{ overflow:"hidden" }}>
-        <PageHeader title={`${CONV_NAME[cls]} · ${sub} · ${TERMS.find(t=>t.id===trm)?.label}`} color="#b45309" right="CA: /10 each · Exam: /70 · Total: /100" />
+        <PageHeader title={`${CONV_NAME[cls]} · ${sub} · ${TERMS.find(t=>t.id===trm)?.label}`} color="#b45309" right="CA1: /20 · CA2: /20 · Exam: /60 · Total: /100" />
         <table style={{ width:"100%", borderCollapse:"collapse" }}>
           <thead>
             <tr style={{ background:"#f8fafc" }}>
-              {["#","STUDENT","ADM","CA1\n/10","CA2\n/10","CA3\n/10","EXAM\n/70","TOTAL\n/100","GRADE","REMARK"].map(h => (
+              {["#","STUDENT","ADM","CA1\n/20","CA2\n/20","EXAM\n/60","TOTAL\n/100","GRADE","REMARK"].map(h => (
                 <th key={h} style={{ textAlign: h==="STUDENT"?"left":"center", padding:"9px 10px", fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:.4, whiteSpace:"pre", borderBottom:"2px solid #e2e8f0" }}>{h}</th>
               ))}
             </tr>
@@ -98,9 +98,9 @@ function ConventionalScores({ students, settings, getScore, setScore }) {
                   <td style={{ padding:"8px 10px", textAlign:"center", fontSize:11, color:"#94a3b8" }}>{i+1}</td>
                   <td style={{ padding:"8px 10px", fontSize:12, fontWeight:600, color:"#0f172a", whiteSpace:"nowrap" }}>{r.name}</td>
                   <td style={{ padding:"8px 10px", textAlign:"center", fontFamily:"monospace", fontSize:9, color:"#1F3864" }}>{r.admNo.split("/").pop()}</td>
-                  {["ca1","ca2","ca3","exam"].map(f => (
+                  {["ca1","ca2","exam"].map(f => (
                     <td key={f} style={{ padding:"6px 8px", textAlign:"center" }}>
-                      <input type="number" value={r.sc[f] ?? ""} min={0} max={f==="exam"?70:10}
+                      <input type="number" value={r.sc[f] ?? ""} min={0} max={f==="exam"?60:20}
                         onChange={e => onChange(r.admNo, f, e.target.value)}
                         style={{ ...nb, width: f==="exam"?52:42 }} />
                     </td>
@@ -146,7 +146,7 @@ const TAH_LEVELS = ["Mutawassid 1", "Mutawassid 2", "Mutawassid 3 (Exam Prep)", 
 
 function IslamiyyahTracking({ students, getScore, setScore, settings }) {
   const [level, setLevel] = useState(ISL_LEVELS[0]);
-  const [trackType, setTrackType] = useState("subjects"); // subjects | tahfeez
+  const [trackType, setTrackType] = useState("subjects");
   const [trm, setTrm] = useState("1");
 
   const levelStudents = useMemo(() =>
@@ -215,7 +215,7 @@ function IslSubjectScores({ level, trm, students, getScore, setScore }) {
   });
 
   const onChange = (admNo, field, val) => {
-    const max = field === "exam" ? 70 : 10;
+    const max = field === "exam" ? 60 : 20;
     setScore(`ISL-${level}`, sub, trm, admNo, field, val === "" ? "" : Math.min(+val, max));
   };
 
@@ -229,7 +229,7 @@ function IslSubjectScores({ level, trm, students, getScore, setScore }) {
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead>
           <tr style={{ background:"#f8fafc" }}>
-            {["#","STUDENT","CA1\n/10","CA2\n/10","CA3\n/10","EXAM\n/70","TOTAL\n/100","GRADE"].map(h => (
+            {["#","STUDENT","CA1\n/20","CA2\n/20","EXAM\n/60","TOTAL\n/100","GRADE"].map(h => (
               <th key={h} style={{ textAlign: h==="STUDENT"?"left":"center", padding:"9px 10px", fontSize:9, fontWeight:700, color:"#64748b", whiteSpace:"pre", borderBottom:"2px solid #e2e8f0" }}>{h}</th>
             ))}
           </tr>
@@ -242,9 +242,9 @@ function IslSubjectScores({ level, trm, students, getScore, setScore }) {
               <tr key={r.admNo} style={{ background: i%2===0?"#fff":"#f8fafc", borderBottom:"1px solid #f1f5f9" }}>
                 <td style={{ padding:"8px 10px", textAlign:"center", fontSize:11, color:"#94a3b8" }}>{i+1}</td>
                 <td style={{ padding:"8px 10px", fontSize:12, fontWeight:600, color:"#0f172a" }}>{r.name}</td>
-                {["ca1","ca2","ca3","exam"].map(f => (
+                {["ca1","ca2","exam"].map(f => (
                   <td key={f} style={{ padding:"6px 8px", textAlign:"center" }}>
-                    <input type="number" value={r.sc[f] ?? ""} min={0} max={f==="exam"?70:10}
+                    <input type="number" value={r.sc[f] ?? ""} min={0} max={f==="exam"?60:20}
                       onChange={e => onChange(r.admNo, f, e.target.value)}
                       style={{ ...nb, width: f==="exam"?52:42 }} />
                   </td>
@@ -263,8 +263,6 @@ function IslSubjectScores({ level, trm, students, getScore, setScore }) {
 }
 
 function TahfeezProgress({ level, trm, students, getScore, setScore, isTahfeez }) {
-  // Use a special "TAHFEEZ" subject key with custom fields encoded in ca1-ca3/exam slots:
-  // ca1 = Juz' completed (number), ca2 = pages this term, ca3 = Tajweed score (1-10), exam = quality index (0-3 mapped to TAH_QUALITY)
   const rows = students.map(s => {
     const sc = getScore(`TAHFEEZ-${level}`, "Tahfeez", trm, s.admNo);
     return { ...s, sc };
@@ -281,7 +279,7 @@ function TahfeezProgress({ level, trm, students, getScore, setScore, isTahfeez }
         <thead>
           <tr style={{ background:"#f8fafc" }}>
             {["#","STUDENT","JUZ' COMPLETED","NEW PAGES (TERM)","TAJWEED SCORE /10","RECITATION QUALITY","TEACHER REMARKS"].map(h => (
-              <th key={h} style={{ textAlign: h==="STUDENT"||h==="TEACHER REMARKS" ?"left":"center", padding:"9px 10px", fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:.3, borderBottom:"2px solid #e2e8f0" }}>{h}</th>
+              <th key={h} style={{ textAlign: h==="STUDENT"||h==="TEACHER REMARKS"?"left":"center", padding:"9px 10px", fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:.3, borderBottom:"2px solid #e2e8f0" }}>{h}</th>
             ))}
           </tr>
         </thead>
