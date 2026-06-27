@@ -5,7 +5,6 @@ import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib } from "../components/shared";
 import { gradeInfo, calcTotal, getPosition, ordinal } from "../utils/helpers";
 
-// Subjects considered "core" for report cards by section
 const REPORT_SUBJECTS = {
   default: ["Mathematics","English Language","Basic Science & Technology","Social Studies","Islamic Studies","Arabic Language"],
 };
@@ -19,7 +18,6 @@ export default function Reports() {
 
   const classStudents = students.filter(s => s.conv === cls && s.status === "Active");
   const subjects = REPORT_SUBJECTS[cls] || REPORT_SUBJECTS.default;
-
   const currentStu = classStudents.find(s => s.admNo === stuId) || classStudents[0];
 
   return (
@@ -122,7 +120,7 @@ function ReportCard({ student, cls, trm, subjects, session, getScore, students }
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead>
           <tr style={{ background:"#0f766e" }}>
-            {["SUBJECT","CA1\n/10","CA2\n/10","CA3\n/10","EXAM\n/70","TOTAL\n/100","GRADE","POSITION","REMARK"].map(h => (
+            {["SUBJECT","CA1\n/20","CA2\n/20","EXAM\n/60","TOTAL\n/100","GRADE","POSITION","REMARK"].map(h => (
               <th key={h} style={{ textAlign: h==="SUBJECT"?"left":"center", padding:"9px 12px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,.85)", letterSpacing:.4, whiteSpace:"pre" }}>{h}</th>
             ))}
           </tr>
@@ -131,7 +129,7 @@ function ReportCard({ student, cls, trm, subjects, session, getScore, students }
           {subjectRows.map(({ sub, sc, total, pos, info }, i) => (
             <tr key={sub} style={{ background: i%2===0?"#fff":"#f8fafc", borderBottom:"1px solid #f1f5f9" }}>
               <td style={{ padding:"9px 12px", fontSize:12, fontWeight:600, color:"#0f172a" }}>{sub}</td>
-              {["ca1","ca2","ca3","exam"].map(f => (
+              {["ca1","ca2","exam"].map(f => (
                 <td key={f} style={{ padding:"9px 12px", textAlign:"center", fontSize:12, color:"#475569" }}>{sc[f] !== "" && sc[f] != null ? sc[f] : "—"}</td>
               ))}
               <td style={{ padding:"9px 12px", textAlign:"center", fontSize:14, fontWeight:800, color:info?.c || "#94a3b8" }}>{total ?? "—"}</td>
