@@ -1,43 +1,32 @@
-/**
-* UPDATED Layout.jsx — WITH ROLE-BASED NAVIGATION
-*
-* Changes from your current version:
-*   1. Accepts `user` and `onLogout` props from App.jsx
-*   2. NAV array now has a `roles` field per item — sidebar only
-*      shows items the logged-in user's role is allowed to see
-*   3. Topbar shows the REAL logged-in user's name/role instead
-*      of the hardcoded "Abubakar Shuaibu" / "AS"
-*   4. Added a Logout button
-*
-* Replace your current Layout.jsx with this file entirely.
-*/
-
 import { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarCheck, BookMarked,
   TrendingUp, FileText, Banknote, Calendar, Settings2,
-  BookOpen, Menu, GraduationCap, RefreshCw, Wifi, WifiOff,
+  BookOpen, Star, Menu, GraduationCap, RefreshCw, Wifi, WifiOff,
   Award, LogOut,
 } from "lucide-react";
 import { NAVY, GOLD } from "../data/constants";
 import { useApp } from "../context/AppContext";
 
-// `roles: null` = visible to everyone logged in.
-// Otherwise, an array of roles that can see this item.
 const NAV = [
-  { id:"dashboard",  label:"Dashboard",        Icon:LayoutDashboard, roles:null },
-  { id:"students",   label:"Student Registry",  Icon:Users,           roles:["director","assistant"] },
-  { id:"attendance", label:"Attendance",         Icon:CalendarCheck,   roles:null },
-  { id:"daar",       label:"DAAR",               Icon:BookMarked,      roles:null },
-  { id:"fees",       label:"Fees",               Icon:Banknote,        roles:["director"] },
-  { id:"academics",  label:"Academics",          Icon:TrendingUp,      roles:null },
-  { id:"reports",    label:"Reports",            Icon:FileText,        roles:["director","assistant"] },
-  { id:"timetable",  label:"Timetable",          Icon:Calendar,        roles:null },
-  { id:"manage",     label:"Manage",             Icon:Settings2,       roles:["director"] },
-{ id:"placementpromotion", label:"Placement & Promotion", Icon:Award, roles:["director","assistant","teacher"] },
+  { id:"dashboard",          label:"Dashboard",             Icon:LayoutDashboard, roles:null },
+  { id:"students",           label:"Student Registry",      Icon:Users,           roles:["director","assistant"] },
+  { id:"attendance",         label:"Attendance",            Icon:CalendarCheck,   roles:null },
+  { id:"daar",               label:"DAAR",                  Icon:BookMarked,      roles:null },
+  { id:"fees",               label:"Fees",                  Icon:Banknote,        roles:["director"] },
+  { id:"academics",          label:"Academics",             Icon:TrendingUp,      roles:null },
+  { id:"reports",            label:"Reports",               Icon:FileText,        roles:["director","assistant"] },
+  { id:"timetable",          label:"Timetable",             Icon:Calendar,        roles:null },
+  { id:"manage",             label:"Manage",                Icon:Settings2,       roles:["director"] },
+  { id:"placementpromotion", label:"Placement & Promotion", Icon:Award,           roles:["director","assistant","teacher"] },
+  { id:"divider",            label:"── QLUS ──",             Icon:null,            divider:true },
+  { id:"qlusdashboard",      label:"QLUS Dashboard",        Icon:BookOpen,        roles:null },
+  { id:"qurantracker",       label:"Quran Tracker",         Icon:BookOpen,        roles:null },
+  { id:"tahfeez",            label:"Tahfeez Center",        Icon:Star,            roles:null },
+  { id:"islamicstudies",     label:"Islamic Studies",       Icon:BookMarked,      roles:null },
 ];
 
-const ROLE_LABEL = { director: "Director", assistant: "Assistant", teacher: "Teacher" };
+const ROLE_LABEL = { director:"Director", assistant:"Assistant", teacher:"Teacher" };
 
 export default function Layout({ page, setPage, children, user, onLogout }) {
   const [sb, setSb] = useState(true);
@@ -47,11 +36,9 @@ export default function Layout({ page, setPage, children, user, onLogout }) {
     weekday:"long", day:"numeric", month:"long", year:"numeric",
   });
 
-  const visibleNav = NAV.filter(n => !n.roles || n.roles.includes(user?.role));
+  const visibleNav = NAV.filter(n => n.divider || !n.roles || n.roles.includes(user?.role));
 
-  // If current page isn't visible to this role (e.g. teacher deep-linked
-  // to "fees"), bounce back to dashboard rather than show a blank page.
-  if (!visibleNav.find(n => n.id === page) && page !== "dashboard") {
+  if (!visibleNav.filter(n => !n.divider).find(n => n.id === page) && page !== "dashboard") {
     setPage("dashboard");
   }
 
@@ -79,7 +66,14 @@ export default function Layout({ page, setPage, children, user, onLogout }) {
 
         {/* Nav */}
         <nav style={{ flex:1, padding:"8px 4px", display:"flex", flexDirection:"column", gap:1 }}>
-          {visibleNav.map(({ id, label, Icon }) => {
+          {visibleNav.map(({ id, label, Icon, divider }) => {
+            if (divider) return sb ? (
+              <div key={id} style={{ padding:"4px 8px", fontSize:9, fontWeight:700,
+                color:"rgba(255,255,255,.25)", letterSpacing:.8, marginTop:6 }}>
+                {label}
+              </div>
+            ) : <div key={id} style={{ height:1, background:"rgba(255,255,255,.08)", margin:"6px 4px" }} />;
+
             const active = page === id;
             return (
               <button key={id} onClick={() => setPage(id)} style={{
@@ -89,7 +83,7 @@ export default function Layout({ page, setPage, children, user, onLogout }) {
                 color:      active ? GOLD : "rgba(255,255,255,.42)",
                 transition:"all .15s",
               }}>
-                <Icon size={14} style={{ flexShrink:0 }} />
+                {Icon && <Icon size={14} style={{ flexShrink:0 }} />}
                 {sb && <span style={{ fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>{label}</span>}
               </button>
             );
