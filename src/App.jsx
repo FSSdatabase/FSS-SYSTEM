@@ -44,7 +44,7 @@ export default function App() {
   const pages = {
     dashboard:          <Dashboard          setPage={setPage} user={user} />,
     students:           <Students           />,
-    attendance:         <Attendance         />,
+    attendance:         <Attendance         user={user} />,
     daar:               <DAAR               user={user} />,
     fees:               <Fees               />,
     academics:          <Academics          />,
