@@ -5,11 +5,16 @@ import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib, PageHeader } from "../components/shared";
 import { S_CYCLE, S_LABEL, S_BG, S_FG, today } from "../utils/helpers";
 
-export default function Attendance() {
+export default function Attendance({ user }) {
   const { students, staffList, getAttRecord, setAttRecord } = useApp();
+  const isTeacher = user?.role === "teacher";
+  const assignedClasses = isTeacher
+    ? (user?.assignedClasses || "").split(",").map(c => c.trim()).filter(Boolean)
+    : CONV_CLASSES;
+  const visibleClasses = assignedClasses.length > 0 ? assignedClasses : CONV_CLASSES;
   const [tab,   setTab]   = useState("students");
   const [date,  setDate]  = useState(today());
-  const [cls,   setCls]   = useState("JSS1");
+  const [cls,   setCls]   = useState(visibleClasses[0] || "JSS1");
   const [saved, setSaved] = useState(false);
   const [local, setLocal] = useState({});  // unsaved changes: {id: status}
 
@@ -55,7 +60,7 @@ export default function Attendance() {
           <div>
             <Lbl c="CLASS" />
             <select value={cls} onChange={e => { setCls(e.target.value); setLocal({}); setSaved(false); }} style={ib}>
-              {CONV_CLASSES.map(c => (
+              {visibleClasses.map(c => (
                 <option key={c} value={c}>{CONV_NAME[c]} ({students.filter(s=>s.conv===c&&s.status==="Active").length})</option>
               ))}
             </select>
