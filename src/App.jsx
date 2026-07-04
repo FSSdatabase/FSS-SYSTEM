@@ -53,9 +53,9 @@ export default function App() {
     manage:             <Manage             />,
     placementpromotion: <PlacementPromotion />,
     qlusdashboard:      <QLUSDashboard      setPage={setPage} />,
-    qurantracker:       <QuranTracker       />,
-    tahfeez:            <TahfeezCenter      />,
-    islamicstudies:     <IslamicStudies     />,
+    qurantracker:       <QuranTracker       user={user} />,
+    tahfeez:            <TahfeezCenter      user={user} />,
+    islamicstudies:     <IslamicStudies     user={user} />,
   };
 
   return (
