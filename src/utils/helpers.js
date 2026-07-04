@@ -49,3 +49,5 @@ export const S_CYCLE = ["P", "A", "L", "E"];
 export const S_LABEL = { P:"Present", A:"Absent", L:"Late", E:"Excused" };
 export const S_BG    = { P:"#dcfce7", A:"#fee2e2", L:"#fef3c7", E:"#dbeafe" };
 export const S_FG    = { P:"#15803d", A:"#dc2626", L:"#d97706", E:"#2563eb" };
+export const parseAssigned = (str) =>
+  (str || "").split(",").map(s => s.trim()).filter(Boolean);
