@@ -48,6 +48,12 @@ export default function TahfeezCenter({ user }) {
   // sitting in a class that happens to correlate with a level is NOT the same
   // as being enrolled in Tahfeez; tahfeezEnrolled is a separate flag.
   const levelStudents = useMemo(() =>
+    console.log("ALL STUDENTS RAW:", students.map(s => ({
+  admNo: s.admNo,
+  status: s.status,
+  tahfeezEnrolled: s.tahfeezEnrolled,
+  tahfeezLevel: s.tahfeezLevel,
+})));
     students.filter(s =>
       s.status === "Active" &&
       s.tahfeezEnrolled === true &&
