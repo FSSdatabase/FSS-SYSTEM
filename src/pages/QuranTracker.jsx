@@ -3,20 +3,41 @@ import { Check, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib } from "../components/shared";
 import { qlusApi } from "../services/qlus_api";
+import { CONV_CLASSES } from "../data/constants";
 import {
   QURAN_CURRICULUM, HURUF_CURRICULUM, QLUS_LEVELS,
   classToQLUSLevel, qualityInfo, TAH_QUALITY, surahName
 } from "../data/qlus_constants";
+import { parseAssigned } from "../utils/helpers";
 
 const TEAL = "#0f766e";
 
-export default function QuranTracker() {
+export default function QuranTracker({ user }) {
   const { students } = useApp();
+
+  // ── Scoping: identical pattern to Attendance/TahfeezCenter, bridged through
+  // classToQLUSLevel since Islamiyyah level IS tied to conventional class. ──
+  const isTeacher = user?.role === "teacher";
+  const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
+  // Fails closed: a teacher with no assignedClasses sees no levels, not all of them.
+  const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+  const visibleLevels = useMemo(() => {
+    const allowed = new Set(visibleClasses.map(c => classToQLUSLevel(c)));
+    return QLUS_LEVELS.filter(l => allowed.has(l));
+  }, [visibleClasses]);
+
   const [tab,      setTab]      = useState("tilawah");
-  const [level,    setLevel]    = useState("Primary 1");
+  const [level,    setLevel]    = useState(visibleLevels[0] || "Primary 1");
   const [progress, setProgress] = useState({});  // key: admNo → record
   const [saved,    setSaved]    = useState({});   // key: admNo → bool
   const [loading,  setLoading]  = useState(false);
+
+  // Keep `level` valid if the teacher's assignment changes.
+  useEffect(() => {
+    if (visibleLevels.length && !visibleLevels.includes(level)) {
+      setLevel(visibleLevels[0]);
+    }
+  }, [visibleLevels, level]);
 
   // Students at this QLUS level
   const levelStudents = useMemo(() => {
@@ -42,9 +63,12 @@ export default function QuranTracker() {
   const curriculum = QURAN_CURRICULUM[level] || {};
   const huruf      = HURUF_CURRICULUM[level] || {};
 
+  // NOTE: hifzPct removed. Memorization is now tracked exclusively in
+  // TahfeezCenter, keyed by the independent tahfeezLevel — not by QLUS
+  // Islamiyyah level. This tracker owns Tilawah (recitation) only.
   const getP = (admNo) => progress[admNo] || {
     admNo, qlusLevel: level,
-    tilawahPct: 0, hifzPct: 0,
+    tilawahPct: 0,
     currentSurahN: curriculum.fromN || 1,
     currentSurahName: surahName(curriculum.fromN || 1),
     murajaahStatus: "Not started",
@@ -79,7 +103,7 @@ export default function QuranTracker() {
   return (
     <>
       <TabBar
-        tabs={[{ id:"tilawah", label:"Tilawah & Hifz" }, { id:"huruf", label:"Arabic / Huruf" }]}
+        tabs={[{ id:"tilawah", label:"Tilawah" }, { id:"huruf", label:"Arabic / Huruf" }]}
         active={tab}
         onChange={setTab}
         activeColor={TEAL}
@@ -89,11 +113,13 @@ export default function QuranTracker() {
         <div>
           <Lbl c="QLUS LEVEL" />
           <select value={level} onChange={e => setLevel(e.target.value)} style={ib}>
-            {QLUS_LEVELS.map(l => (
-              <option key={l} value={l}>
-                {l} ({students.filter(s => s.status==="Active" && classToQLUSLevel(s.conv,s.isl)===l).length} students)
-              </option>
-            ))}
+            {visibleLevels.length === 0
+              ? <option value="">— No classes assigned —</option>
+              : visibleLevels.map(l => (
+                  <option key={l} value={l}>
+                    {l} ({students.filter(s => s.status==="Active" && classToQLUSLevel(s.conv,s.isl)===l).length} students)
+                  </option>
+                ))}
           </select>
         </div>
         <div style={{ marginLeft:"auto", fontSize:10, color:"#94a3b8", paddingBottom:2 }}>
@@ -121,12 +147,12 @@ export default function QuranTracker() {
         </div>
       )}
 
-      {/* ── TILAWAH & HIFZ TAB ─────────────────────────────────────────────── */}
+      {/* ── TILAWAH TAB ────────────────────────────────────────────────────── */}
       {tab === "tilawah" && (
         <Card style={{ overflow:"hidden" }}>
           <div style={{ background:TEAL, padding:"10px 16px" }}>
             <span style={{ color:"#fff", fontWeight:700, fontSize:12 }}>
-              {level} — Tilawah &amp; Hifz Progress
+              {level} — Tilawah (Recitation) Progress
             </span>
           </div>
 
@@ -159,22 +185,13 @@ export default function QuranTracker() {
                   </button>
                 </div>
 
-                {/* Progress bars */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:10 }}>
-                  <div>
-                    <Lbl c="TILAWAH (READING) %" />
-                    {pctBar(p.tilawahPct, TEAL)}
-                    <input type="range" min={0} max={100} value={p.tilawahPct||0}
-                      onChange={e => setField(s.admNo, "tilawahPct", +e.target.value)}
-                      style={{ width:"100%", marginTop:4, accentColor:TEAL }} />
-                  </div>
-                  <div>
-                    <Lbl c="HIFZ (MEMORIZATION) %" />
-                    {pctBar(p.hifzPct, "#4b2e83")}
-                    <input type="range" min={0} max={100} value={p.hifzPct||0}
-                      onChange={e => setField(s.admNo, "hifzPct", +e.target.value)}
-                      style={{ width:"100%", marginTop:4, accentColor:"#4b2e83" }} />
-                  </div>
+                {/* Progress bar — tilawah only */}
+                <div style={{ marginBottom:10 }}>
+                  <Lbl c="TILAWAH (READING) %" />
+                  {pctBar(p.tilawahPct, TEAL)}
+                  <input type="range" min={0} max={100} value={p.tilawahPct||0}
+                    onChange={e => setField(s.admNo, "tilawahPct", +e.target.value)}
+                    style={{ width:"100%", marginTop:4, accentColor:TEAL }} />
                 </div>
 
                 {/* Detail fields */}
