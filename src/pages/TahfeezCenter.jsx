@@ -3,8 +3,9 @@ import { Plus, Trash2, Check } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib } from "../components/shared";
 import { qlusApi } from "../services/qlus_api";
-import { QLUS_LEVELS, classToQLUSLevel, qualityInfo, TAH_QUALITY } from "../data/qlus_constants";
-import { today, uid } from "../utils/helpers";
+import { TAHFEEZ_LEVELS, TAHFEEZ_CURRICULUM, tahfeezProgressPct } from "../data/tahfeez_constants";
+import { qualityInfo, TAH_QUALITY, surahName } from "../data/qlus_constants";
+import { today, uid, parseAssigned } from "../utils/helpers";
 
 const TEAL  = "#0f766e";
 const NAVY  = "#1F3864";
@@ -14,10 +15,21 @@ const BLANK_SESSION = {
   murajaahJuz:"", hizb:"", pages:"", quality:"Good", teacher:"", remarks:"",
 };
 
-export default function TahfeezCenter() {
+export default function TahfeezCenter({ user }) {
   const { students, staffList } = useApp();
+
+  // ── Scoping: Tahfeez levels are independent of assignedClasses. ──────────
+  // A teacher's Tahfeez roster is defined by memorization level, not conventional
+  // class — one teacher may cover students across several classes who share a
+  // level, so this checks assignedTahfeezLevels, not the Islamiyyah scoping field.
+  const isTeacher = user?.role === "teacher";
+  const assignedTahfeez = isTeacher ? parseAssigned(user?.assignedTahfeezLevels) : TAHFEEZ_LEVELS;
+  // Fails closed: an assigned teacher with no Tahfeez levels set sees none,
+  // rather than silently falling back to full access.
+  const visibleTahfeezLevels = isTeacher ? assignedTahfeez : TAHFEEZ_LEVELS;
+
   const [tab,      setTab]     = useState("log");
-  const [level,    setLevel]   = useState("Primary 1");
+  const [level,    setLevel]   = useState(visibleTahfeezLevels[0] || TAHFEEZ_LEVELS[0]);
   const [stuId,    setStuId]   = useState("");
   const [sessions, setSessions]= useState([]);
   const [form,     setForm]    = useState({ ...BLANK_SESSION, date:today() });
@@ -25,9 +37,22 @@ export default function TahfeezCenter() {
   const [loading,  setLoading] = useState(false);
   const [deleting, setDeleting]= useState(null);
 
-  // Students at selected level
+  // Keep `level` valid if the teacher's assignment changes (e.g. after re-login).
+  useEffect(() => {
+    if (visibleTahfeezLevels.length && !visibleTahfeezLevels.includes(level)) {
+      setLevel(visibleTahfeezLevels[0]);
+    }
+  }, [visibleTahfeezLevels, level]);
+
+  // Students at selected Tahfeez level. Enrollment is required — a student
+  // sitting in a class that happens to correlate with a level is NOT the same
+  // as being enrolled in Tahfeez; tahfeezEnrolled is a separate flag.
   const levelStudents = useMemo(() =>
-    students.filter(s => s.status === "Active" && classToQLUSLevel(s.conv, s.isl) === level),
+    students.filter(s =>
+      s.status === "Active" &&
+      s.tahfeezEnrolled === true &&
+      s.tahfeezLevel === level
+    ),
     [students, level]
   );
 
@@ -90,6 +115,7 @@ export default function TahfeezCenter() {
   })();
 
   const qi = qualityInfo(avgQuality);
+  const curriculum = TAHFEEZ_CURRICULUM[level] || {};
 
   return (
     <>
@@ -103,13 +129,15 @@ export default function TahfeezCenter() {
       {/* Selectors */}
       <FilterBar>
         <div>
-          <Lbl c="QLUS LEVEL" />
+          <Lbl c="TAHFEEZ LEVEL" />
           <select value={level} onChange={e => { setLevel(e.target.value); setStuId(""); }} style={ib}>
-            {QLUS_LEVELS.map(l => (
-              <option key={l} value={l}>
-                {l} ({students.filter(s=>s.status==="Active"&&classToQLUSLevel(s.conv,s.isl)===l).length})
-              </option>
-            ))}
+            {visibleTahfeezLevels.length === 0
+              ? <option value="">— No Tahfeez levels assigned —</option>
+              : visibleTahfeezLevels.map(l => (
+                  <option key={l} value={l}>
+                    {l} ({students.filter(s=>s.status==="Active"&&s.tahfeezEnrolled===true&&s.tahfeezLevel===l).length})
+                  </option>
+                ))}
           </select>
         </div>
         <div>
@@ -129,6 +157,25 @@ export default function TahfeezCenter() {
           </div>
         )}
       </FilterBar>
+
+      {/* Curriculum reference card — direction runs backward through the Quran
+          (except Faslus Sadis), so this is framed as a range, not a forward bar. */}
+      {curriculum.fromName && (
+        <div style={{ background:"#0f766e12", border:"1px solid #0f766e30", borderRadius:12, padding:"10px 16px" }}>
+          <div style={{ fontSize:11, fontWeight:700, color:TEAL, marginBottom:4 }}>
+            {level} — Tahfeez Memorization Range
+          </div>
+          <div style={{ fontSize:11, color:"#0f172a" }}>
+            <strong>Memorize:</strong> Surah {curriculum.fromName} ({curriculum.fromN}) → Surah {curriculum.toName} ({curriculum.toN})
+          </div>
+          <div style={{ fontSize:11, color:"#0f172a", marginTop:2 }}>
+            <strong>Muraja'ah:</strong> Surah {curriculum.murajaah} downward
+          </div>
+          {curriculum.note && (
+            <div style={{ fontSize:10, color:"#64748b", marginTop:2 }}>{curriculum.note}</div>
+          )}
+        </div>
+      )}
 
       {/* ── LOG SESSION ──────────────────────────────────────────────────────── */}
       {tab === "log" && (
@@ -160,7 +207,6 @@ export default function TahfeezCenter() {
                   </select>
                 </div>
 
-                {/* Tahfeez session fields */}
                 <div>
                   <Lbl c="SABAQ (NEW LESSON TODAY)" />
                   <input value={form.sabaq} onChange={e=>set("sabaq",e.target.value)}
@@ -192,7 +238,6 @@ export default function TahfeezCenter() {
                     onChange={e=>set("pages",+e.target.value)} style={ib} />
                 </div>
 
-                {/* Quality */}
                 <div style={{ gridColumn:"1/-1" }}>
                   <Lbl c="RECITATION QUALITY" />
                   <div style={{ display:"flex", gap:8 }}>
@@ -242,7 +287,6 @@ export default function TahfeezCenter() {
       {/* ── HISTORY & STATS ──────────────────────────────────────────────────── */}
       {tab === "history" && (
         <>
-          {/* Weekly summary */}
           {selectedStudent && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
               {[
