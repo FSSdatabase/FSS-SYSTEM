@@ -3,23 +3,46 @@ import { Check, Plus, Award } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Card, FilterBar, TabBar, Lbl, ib } from "../components/shared";
 import { qlusApi } from "../services/qlus_api";
+import { CONV_CLASSES } from "../data/constants";
 import {
   QLUS_SUBJECTS, QLUS_LEVELS, classToQLUSLevel,
   HADITH_CURRICULUM, ACHIEVEMENT_TYPES
 } from "../data/qlus_constants";
-import { today, uid } from "../utils/helpers";
+import { today, uid, parseAssigned } from "../utils/helpers";
 
 const TEAL  = "#0f766e";
 const PURPLE= "#4b2e83";
 
-export default function IslamicStudies() {
+export default function IslamicStudies({ user }) {
   const { students, staffList } = useApp();
+
+  // ── Scoping: same pattern as QuranTracker/Attendance. ──────────────────
+  const isTeacher = user?.role === "teacher";
+  const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
+  const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+  const visibleLevels = useMemo(() => {
+    const allowed = new Set(visibleClasses.map(c => classToQLUSLevel(c)));
+    return QLUS_LEVELS.filter(l => allowed.has(l));
+  }, [visibleClasses]);
+  // Used to scope the Achievements-tab student picker, which previously
+  // listed every active student in the school regardless of assignment.
+  const visibleStudents = useMemo(() =>
+    students.filter(s => s.status === "Active" && (!isTeacher || visibleClasses.includes(s.conv))),
+  [students, isTeacher, visibleClasses]);
+
   const [tab,      setTab]     = useState("progress");
-  const [level,    setLevel]   = useState("Primary 1");
+  const [level,    setLevel]   = useState(visibleLevels[0] || "Primary 1");
   const [subject,  setSubject] = useState("Hadith");
   const [progress, setProgress]= useState([]);
   const [loading,  setLoading] = useState(false);
   const [saved,    setSaved]   = useState({});
+
+  // Keep `level` valid if the teacher's assignment changes.
+  useEffect(() => {
+    if (visibleLevels.length && !visibleLevels.includes(level)) {
+      setLevel(visibleLevels[0]);
+    }
+  }, [visibleLevels, level]);
 
   // Achievement form state
   const [achForm,  setAchForm] = useState({
@@ -82,7 +105,7 @@ export default function IslamicStudies() {
 
   const submitAchievement = async () => {
     if (!achForm.admNo || !achForm.awardType) return;
-    const stuName = students.find(s=>s.admNo===achForm.admNo)?.name||"";
+    const stuName = visibleStudents.find(s=>s.admNo===achForm.admNo)?.name||"";
     const record  = { ...achForm, achievementId:"ACH-"+uid(), name:stuName };
     await qlusApi.saveQuranAchievement(record);
     setAchSaved(true);
@@ -124,11 +147,13 @@ export default function IslamicStudies() {
             <div>
               <Lbl c="QLUS LEVEL" />
               <select value={level} onChange={e=>setLevel(e.target.value)} style={ib}>
-                {QLUS_LEVELS.map(l=>(
-                  <option key={l} value={l}>
-                    {l} ({students.filter(s=>s.status==="Active"&&classToQLUSLevel(s.conv,s.isl)===l).length})
-                  </option>
-                ))}
+                {visibleLevels.length === 0
+                  ? <option value="">— No classes assigned —</option>
+                  : visibleLevels.map(l=>(
+                      <option key={l} value={l}>
+                        {l} ({students.filter(s=>s.status==="Active"&&classToQLUSLevel(s.conv,s.isl)===l).length})
+                      </option>
+                    ))}
               </select>
             </div>
             <div>
@@ -300,12 +325,22 @@ export default function IslamicStudies() {
 
               <div>
                 <Lbl c="STUDENT *" />
+                {/* FIXED: previously listed every active student in the school
+                    regardless of the logged-in teacher's assignment. Now scoped
+                    to visibleStudents, same restriction as the level selector. */}
                 <select value={achForm.admNo} onChange={e=>setAchForm(f=>({...f,admNo:e.target.value}))} style={ib}>
                   <option value="">— Select student —</option>
-                  {students.filter(s=>s.status==="Active").map(s=>(
-                    <option key={s.admNo} value={s.admNo}>{s.name} ({s.admNo})</option>
-                  ))}
+                  {visibleStudents.length === 0
+                    ? null
+                    : visibleStudents.map(s=>(
+                        <option key={s.admNo} value={s.admNo}>{s.name} ({s.admNo})</option>
+                      ))}
                 </select>
+                {isTeacher && visibleStudents.length === 0 && (
+                  <div style={{ fontSize:9, color:"#dc2626", marginTop:4 }}>
+                    No students in your assigned classes.
+                  </div>
+                )}
               </div>
 
               <div>
