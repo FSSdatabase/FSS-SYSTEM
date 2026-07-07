@@ -4,8 +4,7 @@ import { NAVY, GOLD } from "../data/constants";
 
 // ── API CONFIG ───────────────────────────────────────────────────
 // Same Web App URL used everywhere else in the app.
-const FSS_API_URL = "https://script.google.com/macros/s/AKfycbyNHMVob57d4evCaHYrBL3woPxQEi_LZ_E7hB7HdPnzKYYWG9OtbMOYOx-TIxOrGeL5/exec";
-
+const FSS_API_URL = import.meta.env.VITE_GAS_URL || "";
 async function fssPost(action, payload) {
   const res = await fetch(FSS_API_URL, {
     method: "POST",
