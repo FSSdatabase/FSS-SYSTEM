@@ -22,6 +22,12 @@ export function AppProvider({ children }) {
   const [online,      setOnline]      = useState(false);
 
   // ── Bootstrap ──────────────────────────────────────────────────────────
+  // FIXED: previously used truthy checks only (`if (stu) setStudents(stu)`).
+  // A rejected/permission-denied API call (e.g. { ok:false, error:"..." })
+  // is still truthy, so it could silently overwrite state with an object
+  // instead of an array — causing downstream ".filter is not a function"
+  // crashes anywhere that state is consumed. Array.isArray() guards against
+  // this specifically.
   const bootstrap = useCallback(async () => {
     setLoading(true);
     try {
@@ -30,9 +36,9 @@ export function AppProvider({ children }) {
         api.getStaff(),
         api.getSettings(),
       ]);
-      if (stu)  { setStudents(stu);  setOnline(true); }
-      if (stf)  { setStaffList(stf); }
-      if (sett) { setSettings(sett); }
+      if (Array.isArray(stu)) { setStudents(stu); setOnline(true); }
+      if (Array.isArray(stf)) { setStaffList(stf); }
+      if (sett && typeof sett === "object" && !Array.isArray(sett)) { setSettings(sett); }
     } catch (_) {
       // GAS not configured — running offline with seed data
     }
