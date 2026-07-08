@@ -7,6 +7,11 @@ import { today }         from "../utils/helpers";
 
 const AppContext = createContext(null);
 
+// A permission-rejected API call returns { ok:false, error:"..." } — a plain
+// object, which passes a naive "typeof === object" check. This helper
+// catches that shape specifically so it's never mistaken for real data.
+const isRejected = (v) => v && typeof v === "object" && v.ok === false;
+
 export function AppProvider({ children }) {
   const [students,  setStudents]  = useState(REAL_STUDENTS);
   const [staffList, setStaffList] = useState(REAL_STAFF);
@@ -22,12 +27,11 @@ export function AppProvider({ children }) {
   const [online,      setOnline]      = useState(false);
 
   // ── Bootstrap ──────────────────────────────────────────────────────────
-  // FIXED: previously used truthy checks only (`if (stu) setStudents(stu)`).
-  // A rejected/permission-denied API call (e.g. { ok:false, error:"..." })
-  // is still truthy, so it could silently overwrite state with an object
-  // instead of an array — causing downstream ".filter is not a function"
-  // crashes anywhere that state is consumed. Array.isArray() guards against
-  // this specifically.
+  // FIXED (round 2): the settings check previously accepted any non-array
+  // object, which let a { ok:false, error:"not permitted" } rejection
+  // through as if it were valid { session, feeRates } data — settings.
+  // feeRates then became undefined, crashing anywhere it was indexed
+  // (e.g. settings.feeRates[s.conv]). Now explicitly excluded via isRejected().
   const bootstrap = useCallback(async () => {
     setLoading(true);
     try {
@@ -38,7 +42,9 @@ export function AppProvider({ children }) {
       ]);
       if (Array.isArray(stu)) { setStudents(stu); setOnline(true); }
       if (Array.isArray(stf)) { setStaffList(stf); }
-      if (sett && typeof sett === "object" && !Array.isArray(sett)) { setSettings(sett); }
+      if (sett && typeof sett === "object" && !Array.isArray(sett) && !isRejected(sett)) {
+        setSettings(sett);
+      }
     } catch (_) {
       // GAS not configured — running offline with seed data
     }
@@ -82,14 +88,12 @@ export function AppProvider({ children }) {
     try {
       const result = await api.saveDAAREntry(entry);
       if (result === null) {
-        // Offline — add locally only
         setDaarEntries(prev => [entry, ...prev]);
         return { ok: true };
       }
       setDaarEntries(prev => [entry, ...prev]);
       return { ok: true };
     } catch (err) {
-      // Backend rejected — permission error or other
       return { ok: false, error: err.message };
     }
   };
