@@ -15,31 +15,35 @@ const TEAL = "#0f766e";
 export default function QuranTracker({ user }) {
   const { students } = useApp();
 
-  // ── Scoping: identical pattern to Attendance/TahfeezCenter, bridged through
-  // classToQLUSLevel since Islamiyyah level IS tied to conventional class. ──
   const isTeacher = user?.role === "teacher";
   const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
-  // Fails closed: a teacher with no assignedClasses sees no levels, not all of them.
   const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+
+  // FIXED: previously derived from classToQLUSLevel(c) — conv code only — which
+  // could disagree with the real per-student filter below (which also checks
+  // isl). A student whose isl diverges from what conv alone predicts could be
+  // entirely invisible in the dropdown even though they're a real, scoped
+  // student. Now computed from the actual scoped students' real levels.
   const visibleLevels = useMemo(() => {
-    const allowed = new Set(visibleClasses.map(c => classToQLUSLevel(c)));
+    const scopedStudents = isTeacher
+      ? students.filter(s => visibleClasses.includes(s.conv))
+      : students;
+    const allowed = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
     return QLUS_LEVELS.filter(l => allowed.has(l));
-  }, [visibleClasses]);
+  }, [visibleClasses, students, isTeacher]);
 
   const [tab,      setTab]      = useState("tilawah");
   const [level,    setLevel]    = useState(visibleLevels[0] || "Primary 1");
-  const [progress, setProgress] = useState({});  // key: admNo → record
-  const [saved,    setSaved]    = useState({});   // key: admNo → bool
+  const [progress, setProgress] = useState({});
+  const [saved,    setSaved]    = useState({});
   const [loading,  setLoading]  = useState(false);
 
-  // Keep `level` valid if the teacher's assignment changes.
   useEffect(() => {
     if (visibleLevels.length && !visibleLevels.includes(level)) {
       setLevel(visibleLevels[0]);
     }
   }, [visibleLevels, level]);
 
-  // Students at this QLUS level
   const levelStudents = useMemo(() => {
     return students.filter(s => {
       if (s.status !== "Active") return false;
@@ -63,9 +67,6 @@ export default function QuranTracker({ user }) {
   const curriculum = QURAN_CURRICULUM[level] || {};
   const huruf      = HURUF_CURRICULUM[level] || {};
 
-  // NOTE: hifzPct removed. Memorization is now tracked exclusively in
-  // TahfeezCenter, keyed by the independent tahfeezLevel — not by QLUS
-  // Islamiyyah level. This tracker owns Tilawah (recitation) only.
   const getP = (admNo) => progress[admNo] || {
     admNo, qlusLevel: level,
     tilawahPct: 0,
@@ -127,7 +128,6 @@ export default function QuranTracker({ user }) {
         </div>
       </FilterBar>
 
-      {/* Curriculum reference card */}
       {curriculum.fromName && (
         <div style={{ background:"#0f766e12", border:"1px solid #0f766e30", borderRadius:12, padding:"10px 16px" }}>
           <div style={{ fontSize:11, fontWeight:700, color:TEAL, marginBottom:4 }}>
@@ -147,7 +147,6 @@ export default function QuranTracker({ user }) {
         </div>
       )}
 
-      {/* ── TILAWAH TAB ────────────────────────────────────────────────────── */}
       {tab === "tilawah" && (
         <Card style={{ overflow:"hidden" }}>
           <div style={{ background:TEAL, padding:"10px 16px" }}>
@@ -170,7 +169,6 @@ export default function QuranTracker({ user }) {
             const isSaved = saved[s.admNo];
             return (
               <div key={s.admNo} style={{ padding:"14px 16px", background: i%2===0?"#fff":"#f8fafc", borderBottom:"1px solid #f1f5f9" }}>
-                {/* Student header */}
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                   <div>
                     <div style={{ fontSize:12, fontWeight:700, color:"#0f172a" }}>{s.name}</div>
@@ -185,7 +183,6 @@ export default function QuranTracker({ user }) {
                   </button>
                 </div>
 
-                {/* Progress bar — tilawah only */}
                 <div style={{ marginBottom:10 }}>
                   <Lbl c="TILAWAH (READING) %" />
                   {pctBar(p.tilawahPct, TEAL)}
@@ -194,7 +191,6 @@ export default function QuranTracker({ user }) {
                     style={{ width:"100%", marginTop:4, accentColor:TEAL }} />
                 </div>
 
-                {/* Detail fields */}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8 }}>
                   <div>
                     <Lbl c="CURRENT SURAH" />
@@ -239,7 +235,6 @@ export default function QuranTracker({ user }) {
         </Card>
       )}
 
-      {/* ── HURUF / ARABIC TAB ─────────────────────────────────────────────── */}
       {tab === "huruf" && (
         <Card style={{ overflow:"hidden" }}>
           <div style={{ background:"#4b2e83", padding:"10px 16px" }}>
@@ -266,7 +261,6 @@ export default function QuranTracker({ user }) {
                 </div>
               </div>
 
-              {/* Per-student Arabic skill tracking */}
               <div style={{ fontSize:10, fontWeight:700, color:"#94a3b8", letterSpacing:.4, marginBottom:8 }}>STUDENT ARABIC PROGRESS — {level.toUpperCase()}</div>
               {levelStudents.map((s, i) => {
                 const p = getP(s.admNo);
