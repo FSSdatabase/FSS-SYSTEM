@@ -16,16 +16,21 @@ const PURPLE= "#4b2e83";
 export default function IslamicStudies({ user }) {
   const { students, staffList } = useApp();
 
-  // ── Scoping: same pattern as QuranTracker/Attendance. ──────────────────
   const isTeacher = user?.role === "teacher";
   const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
   const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+
+  // FIXED: same as QuranTracker.jsx — derive from actual scoped students'
+  // real conv+isl levels, not a conv-only map, so the dropdown can never
+  // disagree with the real per-student filter used below.
   const visibleLevels = useMemo(() => {
-    const allowed = new Set(visibleClasses.map(c => classToQLUSLevel(c)));
+    const scopedStudents = isTeacher
+      ? students.filter(s => visibleClasses.includes(s.conv))
+      : students;
+    const allowed = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
     return QLUS_LEVELS.filter(l => allowed.has(l));
-  }, [visibleClasses]);
-  // Used to scope the Achievements-tab student picker, which previously
-  // listed every active student in the school regardless of assignment.
+  }, [visibleClasses, students, isTeacher]);
+
   const visibleStudents = useMemo(() =>
     students.filter(s => s.status === "Active" && (!isTeacher || visibleClasses.includes(s.conv))),
   [students, isTeacher, visibleClasses]);
@@ -37,14 +42,12 @@ export default function IslamicStudies({ user }) {
   const [loading,  setLoading] = useState(false);
   const [saved,    setSaved]   = useState({});
 
-  // Keep `level` valid if the teacher's assignment changes.
   useEffect(() => {
     if (visibleLevels.length && !visibleLevels.includes(level)) {
       setLevel(visibleLevels[0]);
     }
   }, [visibleLevels, level]);
 
-  // Achievement form state
   const [achForm,  setAchForm] = useState({
     admNo:"", awardType:"Khatmah (Full Quran)",
     awardTitle:"", description:"", date:today(), teacher:"",
@@ -60,7 +63,6 @@ export default function IslamicStudies({ user }) {
     .filter(s=>["Teacher","Head of Islamiyyah","Head of Mutawassid","Class Teacher"].includes(s.role))
     .map(s=>s.name);
 
-  // Load progress when level/subject changes
   useEffect(() => {
     setLoading(true);
     qlusApi.getIslamicProgress({ qlusLevel:level, subject }).then(data=>{
@@ -113,7 +115,6 @@ export default function IslamicStudies({ user }) {
     setTimeout(()=>setAchSaved(false),3000);
   };
 
-  // Subject-specific helpers
   const hadithCur = HADITH_CURRICULUM[level];
   const subjectColor = {
     "Hadith":"#b45309","Fiqh":TEAL,"Tawheed":PURPLE,
@@ -122,7 +123,6 @@ export default function IslamicStudies({ user }) {
   };
   const color = subjectColor[subject]||TEAL;
 
-  // Completion stats
   const completedCount = levelStudents.filter(s => {
     const p = getP(s.admNo);
     return p.completed==="Yes";
@@ -140,7 +140,6 @@ export default function IslamicStudies({ user }) {
         activeColor={TEAL}
       />
 
-      {/* ── SUBJECT PROGRESS ───────────────────────────────────────────────── */}
       {tab==="progress" && (
         <>
           <FilterBar>
@@ -176,7 +175,6 @@ export default function IslamicStudies({ user }) {
             </div>
           </FilterBar>
 
-          {/* Hadith reference panel */}
           {subject==="Hadith" && hadithCur && (
             <div style={{ background:"#b4530918", border:"1px solid #b4530930", borderRadius:12, padding:"10px 16px" }}>
               <div style={{ fontSize:11, fontWeight:700, color:"#b45309", marginBottom:2 }}>
@@ -221,7 +219,6 @@ export default function IslamicStudies({ user }) {
                   borderBottom:"1px solid #f1f5f9",
                   borderLeft: isCompleted ? `3px solid #15803d` : "3px solid transparent",
                 }}>
-                  {/* Student header */}
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                       <div style={{ width:32, height:32, borderRadius:8, background:color, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, flexShrink:0 }}>
@@ -233,7 +230,6 @@ export default function IslamicStudies({ user }) {
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                      {/* Completed toggle */}
                       <button onClick={()=>setField(s.admNo,"completed",isCompleted?"No":"Yes")} style={{
                         background: isCompleted?"#dcfce7":"#f1f5f9",
                         color: isCompleted?"#15803d":"#64748b",
@@ -253,7 +249,6 @@ export default function IslamicStudies({ user }) {
                     </div>
                   </div>
 
-                  {/* Fields */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8 }}>
                     <div>
                       <Lbl c="UNIT REF." />
@@ -293,7 +288,6 @@ export default function IslamicStudies({ user }) {
               );
             })}
 
-            {/* Footer stats */}
             {!loading && levelStudents.length>0 && (
               <div style={{ display:"flex", borderTop:"2px solid #e2e8f0" }}>
                 {[
@@ -312,7 +306,6 @@ export default function IslamicStudies({ user }) {
         </>
       )}
 
-      {/* ── ACHIEVEMENTS ───────────────────────────────────────────────────── */}
       {tab==="achievements" && (
         <>
           <Card style={{ overflow:"hidden" }}>
@@ -325,9 +318,6 @@ export default function IslamicStudies({ user }) {
 
               <div>
                 <Lbl c="STUDENT *" />
-                {/* FIXED: previously listed every active student in the school
-                    regardless of the logged-in teacher's assignment. Now scoped
-                    to visibleStudents, same restriction as the level selector. */}
                 <select value={achForm.admNo} onChange={e=>setAchForm(f=>({...f,admNo:e.target.value}))} style={ib}>
                   <option value="">— Select student —</option>
                   {visibleStudents.length === 0
@@ -393,7 +383,6 @@ export default function IslamicStudies({ user }) {
             </div>
           </Card>
 
-          {/* Achievement types reference */}
           <Card style={{ padding:14 }}>
             <div style={{ fontWeight:700, color:"#0f172a", fontSize:12, marginBottom:10 }}>Achievement Types Available</div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
