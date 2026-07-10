@@ -31,7 +31,6 @@ export default function QLUSDashboard({ setPage }) {
 
   return (
     <>
-      {/* Header strip */}
       <div style={{ background:`linear-gradient(135deg,${NAVY},${TEAL})`, borderRadius:14, padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
           <div style={{ color:GOLD, fontWeight:800, fontSize:16, letterSpacing:.5 }}>
@@ -46,7 +45,6 @@ export default function QLUSDashboard({ setPage }) {
         </button>
       </div>
 
-      {/* Stat cards */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
         {[
           { l:"Students Tracked",   v: stats?.trackedStudents ?? "—",   sub:"In QLUS system",         c:TEAL,    I:BookOpen },
@@ -71,7 +69,6 @@ export default function QLUSDashboard({ setPage }) {
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
 
-        {/* Top memorizers */}
         <Card style={{ padding:14 }}>
           <div style={{ fontWeight:700, color:"#0f172a", fontSize:12, marginBottom:10 }}>🏆 Top Memorizers</div>
           {(!stats?.topMemorizers || stats.topMemorizers.length === 0) ? (
@@ -100,7 +97,10 @@ export default function QLUSDashboard({ setPage }) {
               { l:"Log Tahfeez Session",          fn:()=>setPage("tahfeez"),        bg:NAVY },
               { l:"Update Quran Progress",         fn:()=>setPage("qurantracker"),   bg:TEAL },
               { l:"Record Islamic Studies",        fn:()=>setPage("islamicstudies"), bg:"#4b2e83" },
-              { l:"Award Achievement / Khatmah",  fn:()=>setPage("achievements"),   bg:"#b45309" },
+              // FIXED: previously called setPage("achievements"), a page that does
+              // not exist in App.jsx's routing — silently fell through to Dashboard.
+              // Achievements live inside the Islamic Studies page's Achievements tab.
+              { l:"Award Achievement / Khatmah",  fn:()=>setPage("islamicstudies"), bg:"#b45309" },
             ].map(({ l, fn, bg }) => (
               <button key={l} onClick={fn} style={{ background:bg, color:"#fff", border:"none", borderRadius:9, padding:"10px 14px", fontSize:11, fontWeight:700, cursor:"pointer", textAlign:"left" }}>{l}</button>
             ))}
@@ -108,7 +108,6 @@ export default function QLUSDashboard({ setPage }) {
         </Card>
       </div>
 
-      {/* Subject progress overview */}
       <Card style={{ padding:14 }}>
         <div style={{ fontWeight:700, color:"#0f172a", fontSize:12, marginBottom:12 }}>Islamic Subjects Coverage</div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
