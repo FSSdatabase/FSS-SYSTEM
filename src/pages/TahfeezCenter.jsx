@@ -15,6 +15,26 @@ const BLANK_SESSION = {
   murajaahJuz:"", hizb:"", pages:"", quality:"Good", teacher:"", remarks:"",
 };
 
+/**
+ * DESIGN DECISION (confirmed): Two Tahfeez tracking paths coexist deliberately,
+ * for two distinct student populations — this is not duplication to be merged.
+ *
+ * 1. "Islamiyyah Tahfeez" — memorization progress for students enrolled in
+ *    Islamiyyah (conv and/or isl set). Tracked via the legacy Academics.jsx
+ *    Islamiyyah/Tahfeez tab (Scores sheet, TAHFEEZ-<level> prefix), paired
+ *    conceptually with QuranTracker.jsx's Tilawah tracking for the same
+ *    students. No code change needed — this pairing is intentional.
+ *
+ * 2. "Independent Tahfeez" (THIS component) — for students who are NOT
+ *    enrolled in Islamiyyah and NOT in a conventional class at all — a
+ *    distinct cohort tracked purely by tahfeezLevel/tahfeezEnrolled,
+ *    independent of conv/isl entirely.
+ *
+ * The soft warning below flags (does not block) any student appearing here
+ * who also has conv or isl set, since that likely means they belong in the
+ * Islamiyyah Tahfeez path instead, not this one — a data-entry double-check,
+ * not a hard restriction.
+ */
 export default function TahfeezCenter({ user }) {
   const { students, staffList } = useApp();
 
@@ -55,12 +75,7 @@ export default function TahfeezCenter({ user }) {
     ),
     [students, level]
   );
-    console.log("ALL STUDENTS RAW:", students.map(s => ({
-  admNo: s.admNo,
-  status: s.status,
-  tahfeezEnrolled: s.tahfeezEnrolled,
-  tahfeezLevel: s.tahfeezLevel,
-})));
+
   const selectedStudent = levelStudents.find(s => s.admNo === stuId) || levelStudents[0];
 
   // Load sessions when student changes
@@ -153,6 +168,19 @@ export default function TahfeezCenter({ user }) {
               : levelStudents.map(s => <option key={s.admNo} value={s.admNo}>{s.name}</option>)}
           </select>
         </div>
+        {selectedStudent && (selectedStudent.conv || selectedStudent.isl) && (
+          <div style={{ display:"flex", alignItems:"flex-end", paddingBottom:2 }}>
+            <div style={{ padding:"6px 12px", background:"#fef3c7", borderRadius:9, border:"1px solid #fed7aa" }}>
+              <div style={{ fontSize:9, fontWeight:700, color:"#b45309" }}>⚠ CHECK ENROLLMENT</div>
+              <div style={{ fontSize:10, color:"#92400e" }}>
+                This student also has {selectedStudent.conv ? `Class: ${selectedStudent.conv}` : ""}
+                {selectedStudent.conv && selectedStudent.isl ? " · " : ""}
+                {selectedStudent.isl ? `Islamiyyah: ${selectedStudent.isl}` : ""}
+                {" "}— likely belongs in the Islamiyyah Tahfeez tracking (Academics tab) instead.
+              </div>
+            </div>
+          </div>
+        )}
         {selectedStudent && (
           <div style={{ display:"flex", alignItems:"flex-end", paddingBottom:2 }}>
             <div style={{ padding:"6px 12px", background:TEAL+"15", borderRadius:9, border:`1px solid ${TEAL}30` }}>
