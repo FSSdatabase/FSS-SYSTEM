@@ -1,171 +1,63 @@
 import { useState } from "react";
-import {
-  LayoutDashboard, Users, CalendarCheck, BookMarked,
-  TrendingUp, FileText, Banknote, Calendar, Settings2,
-  BookOpen, Star, Menu, GraduationCap, RefreshCw, Wifi, WifiOff,
-  Award, LogOut, Shield,
-} from "lucide-react";
-import { NAVY, GOLD } from "../data/constants";
-import { useApp } from "../context/AppContext";
+import Layout             from "./components/Layout";
+import Login              from "./components/Login";
+import Dashboard          from "./pages/Dashboard";
+import Students           from "./pages/Students";
+import Attendance         from "./pages/Attendance";
+import DAAR               from "./pages/DAAR";
+import Fees               from "./pages/Fees";
+import Academics          from "./pages/Academics";
+import Reports            from "./pages/Reports";
+import Timetable          from "./pages/Timetable";
+import Manage             from "./pages/Manage";
+import PlacementPromotion from "./pages/placementpromotion/placementpromotion";
+import QLUSDashboard      from "./pages/QLUSDashboard";
+import QuranTracker       from "./pages/QuranTracker";
+import TahfeezCenter      from "./pages/TahfeezCenter";
+import IslamicStudies     from "./pages/IslamicStudies";
+import HeadDashboard      from "./pages/HeadDashboard";
 
-// NEW: each item may carry `headDepartments` — when the logged-in role is
-// "head", the item is only visible if the user's department is in this list.
-// Items with no `headDepartments` and no `roles` restriction are visible to
-// every role including Head (e.g. Dashboard, Timetable).
-const NAV = [
-  { id:"dashboard",          label:"Dashboard",             Icon:LayoutDashboard, roles:null },
-  { id:"headdashboard",      label:"Department Dashboard",  Icon:Shield,          roles:["head"] },
-  { id:"students",           label:"Student Registry",      Icon:Users,           roles:["director","assistant"] },
-  { id:"attendance",         label:"Attendance",            Icon:CalendarCheck,   roles:null,           headDepartments:["Conventional"] },
-  { id:"daar",               label:"DAAR",                  Icon:BookMarked,      roles:null,           headDepartments:["Conventional","Islamiyyah"] },
-  { id:"fees",               label:"Fees",                  Icon:Banknote,        roles:["director"] },
-  { id:"academics",          label:"Academics",             Icon:TrendingUp,      roles:null,           headDepartments:["Conventional","Islamiyyah"] },
-  { id:"reports",            label:"Reports",               Icon:FileText,        roles:["director","assistant"] },
-  { id:"timetable",          label:"Timetable",             Icon:Calendar,        roles:null },
-  { id:"manage",             label:"Manage",                Icon:Settings2,       roles:["director"] },
-  { id:"placementpromotion", label:"Placement & Promotion", Icon:Award,           roles:["director","assistant","teacher"] },
-  { id:"divider",            label:"── QLUS ──",             Icon:null,            divider:true },
-  { id:"qlusdashboard",      label:"QLUS Dashboard",        Icon:BookOpen,        roles:null },
-  { id:"qurantracker",       label:"Quran Tracker",         Icon:BookOpen,        roles:null,           headDepartments:["Islamiyyah"] },
-  { id:"tahfeez",            label:"Tahfeez Center",        Icon:Star,            roles:null,           headDepartments:["Tahfeez"] },
-  { id:"islamicstudies",     label:"Islamic Studies",       Icon:BookMarked,      roles:null,           headDepartments:["Islamiyyah"] },
-];
-
-const ROLE_LABEL = { director:"Director", assistant:"Assistant", head:"Head of Department", teacher:"Teacher" };
-
-export default function Layout({ page, setPage, children, user, onLogout }) {
-  const [sb, setSb] = useState(true);
-  const { settings, loading, online, bootstrap, students, staffList } = useApp();
-
-  const today = new Date().toLocaleDateString("en-GB", {
-    weekday:"long", day:"numeric", month:"long", year:"numeric",
+export default function App() {
+  const [page, setPage] = useState("dashboard");
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("fss_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
   });
-
-  const visibleNav = NAV.filter(n => {
-    if (n.divider) return true;
-    if (n.roles && !n.roles.includes(user?.role)) return false;
-    // Head-specific department gating — a Head only sees pages tagged for
-    // their own department. Pages with no headDepartments restriction (e.g.
-    // Dashboard, Timetable, QLUS Dashboard) remain visible to every Head
-    // regardless of department.
-    if (user?.role === "head" && n.headDepartments && !n.headDepartments.includes(user?.department)) {
-      return false;
-    }
-    return true;
-  });
-
-  if (!visibleNav.filter(n => !n.divider).find(n => n.id === page) && page !== "dashboard") {
-    setPage("dashboard");
+  if (!user) {
+    return (
+      <Login onLogin={(loggedInUser) => {
+        setUser(loggedInUser);
+        localStorage.setItem("fss_user", JSON.stringify(loggedInUser));
+      }} />
+    );
   }
-
-  const initials = (user?.name || "?")
-    .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
-
-  const roleLabel = user?.role === "head"
-    ? `Head of ${user?.department || "?"}`
-    : (ROLE_LABEL[user?.role] || user?.role);
-
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem("fss_user");
+    setPage("dashboard");
+  };
+  const pages = {
+    dashboard:          <Dashboard          setPage={setPage} user={user} />,
+    headdashboard:      <HeadDashboard      user={user} />,
+    students:           <Students           />,
+    attendance:         <Attendance         user={user} />,
+    daar:               <DAAR               user={user} />,
+    fees:               <Fees               />,
+    academics:          <Academics          user={user} />,
+    reports:            <Reports            />,
+    timetable:          <Timetable          />,
+    manage:             <Manage             />,
+    placementpromotion: <PlacementPromotion />,
+    qlusdashboard:      <QLUSDashboard      setPage={setPage} />,
+    qurantracker:       <QuranTracker       user={user} />,
+    tahfeez:            <TahfeezCenter      user={user} />,
+    islamicstudies:     <IslamicStudies     user={user} />,
+  };
   return (
-    <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"system-ui,sans-serif", background:"#f1f5f9" }}>
-
-      {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
-      <aside style={{ width:sb?218:48, background:NAVY, display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden", transition:"width .2s" }}>
-
-        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 8px", borderBottom:"1px solid rgba(255,255,255,.08)" }}>
-          <div style={{ width:30, height:30, borderRadius:9, background:GOLD, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <GraduationCap size={15} color={NAVY} />
-          </div>
-          {sb && (
-            <div>
-              <div style={{ color:"#fff", fontWeight:700, fontSize:11, whiteSpace:"nowrap" }}>Focus Islamic &amp; Western</div>
-              <div style={{ color:"rgba(255,255,255,.4)", fontSize:9 }}>School Management System</div>
-            </div>
-          )}
-        </div>
-
-        <nav style={{ flex:1, padding:"8px 4px", display:"flex", flexDirection:"column", gap:1 }}>
-          {visibleNav.map(({ id, label, Icon, divider }) => {
-            if (divider) return sb ? (
-              <div key={id} style={{ padding:"4px 8px", fontSize:9, fontWeight:700,
-                color:"rgba(255,255,255,.25)", letterSpacing:.8, marginTop:6 }}>
-                {label}
-              </div>
-            ) : <div key={id} style={{ height:1, background:"rgba(255,255,255,.08)", margin:"6px 4px" }} />;
-
-            const active = page === id;
-            return (
-              <button key={id} onClick={() => setPage(id)} style={{
-                display:"flex", alignItems:"center", gap:8, width:"100%",
-                padding:"8px 7px", borderRadius:8, border:"none", cursor:"pointer",
-                background: active ? "rgba(201,168,76,.22)" : "transparent",
-                color:      active ? GOLD : "rgba(255,255,255,.42)",
-                transition:"all .15s",
-              }}>
-                {Icon && <Icon size={14} style={{ flexShrink:0 }} />}
-                {sb && <span style={{ fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>{label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {sb && (
-          <div style={{ padding:"0 8px 12px" }}>
-            <div style={{ background:"rgba(255,255,255,.06)", borderRadius:9, padding:8, textAlign:"center" }}>
-              <div style={{ color:GOLD, fontWeight:700, fontSize:10 }}>{settings.session}</div>
-              <div style={{ color:"rgba(255,255,255,.3)", fontSize:9, marginTop:1 }}>Active Session</div>
-            </div>
-          </div>
-        )}
-      </aside>
-
-      {/* ── MAIN ─────────────────────────────────────────────────────────── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-
-        <header style={{ height:48, background:"#fff", borderBottom:"1px solid #e2e8f0", display:"flex", alignItems:"center", padding:"0 14px", gap:10, flexShrink:0 }}>
-          <button onClick={() => setSb(s => !s)} style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8" }}>
-            <Menu size={17} />
-          </button>
-          <div style={{ width:1, height:16, background:"#e2e8f0" }} />
-          <span style={{ fontWeight:700, color:"#0f172a", fontSize:13 }}>
-            {NAV.find(n => n.id === page)?.label}
-          </span>
-          <span style={{ color:"#94a3b8", fontSize:11 }}>{today}</span>
-
-          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:10 }}>
-            <div title={online ? "Connected to Google Sheets" : "Offline — using local data"}
-              style={{ display:"flex", alignItems:"center", gap:4, fontSize:9, color: online ? "#15803d" : "#94a3b8" }}>
-              {online ? <Wifi size={12} /> : <WifiOff size={12} />}
-              {sb && <span>{online ? "Live" : "Offline"}</span>}
-            </div>
-            <button onClick={bootstrap} title="Refresh data" style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8" }}>
-              <RefreshCw size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-            </button>
-            <div style={{ width:28, height:28, borderRadius:"50%", background:NAVY, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:10 }}>
-              {initials}
-            </div>
-            {sb && (
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, color:"#0f172a" }}>{user?.name || "Unknown"}</div>
-                <div style={{ fontSize:9, color:"#94a3b8" }}>
-                  {roleLabel} · {students.filter(s=>s.status==="Active").length} students · {staffList.length} staff
-                </div>
-              </div>
-            )}
-            <button onClick={onLogout} title="Log out" style={{
-              background:"none", border:"none", cursor:"pointer", color:"#94a3b8",
-              display:"flex", alignItems:"center", padding:4,
-            }}>
-              <LogOut size={15} />
-            </button>
-          </div>
-        </header>
-
-        <main style={{ flex:1, overflowY:"auto", padding:14, display:"flex", flexDirection:"column", gap:12 }}>
-          {children}
-        </main>
-      </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    <Layout page={page} setPage={setPage} user={user} onLogout={handleLogout}>
+      {pages[page] || pages.dashboard}
+    </Layout>
   );
 }
