@@ -28,7 +28,9 @@ const post = async (action, payload = {}) => {
         json.error.includes("not permitted") ||
         json.error.includes("not assigned") ||
         json.error.includes("Not logged in") ||
-        json.error.includes("disabled")
+        json.error.includes("disabled") ||
+        json.error.includes("Head of") ||
+        json.error.includes("oversee")
       )) {
         return { ok: false, error: json.error };
       }
@@ -75,4 +77,6 @@ export const api = {
   updateUser:  (targetEmail, updates)  => post("updateUser",  { targetEmail, updates }),
   disableUser: (targetEmail)           => post("disableUser", { targetEmail }),
   enableUser:  (targetEmail)           => post("enableUser",  { targetEmail }),
+  // ── Department Reports (Head role) ─────────────────────────────────────────
+  getDepartmentReport: (department) => post("getDepartmentReport", { department }),
 };
