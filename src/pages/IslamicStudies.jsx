@@ -19,21 +19,29 @@ export default function IslamicStudies({ user }) {
   const isTeacher = user?.role === "teacher";
   const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
   const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+  // NEW: independent Islamiyyah assignment, same as QuranTracker.
+  const assignedIslamiyyahDirect = isTeacher ? parseAssigned(user?.assignedIslamiyyahLevels) : [];
 
-  // FIXED: same as QuranTracker.jsx — derive from actual scoped students'
-  // real conv+isl levels, not a conv-only map, so the dropdown can never
-  // disagree with the real per-student filter used below.
   const visibleLevels = useMemo(() => {
     const scopedStudents = isTeacher
       ? students.filter(s => visibleClasses.includes(s.conv))
       : students;
-    const allowed = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
+    const fromConv = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
+    const allowed = new Set([...fromConv, ...assignedIslamiyyahDirect]);
     return QLUS_LEVELS.filter(l => allowed.has(l));
-  }, [visibleClasses, students, isTeacher]);
+  }, [visibleClasses, students, isTeacher, assignedIslamiyyahDirect]);
 
-  const visibleStudents = useMemo(() =>
-    students.filter(s => s.status === "Active" && (!isTeacher || visibleClasses.includes(s.conv))),
-  [students, isTeacher, visibleClasses]);
+  // visibleStudents (used by the Achievements tab picker) now also includes
+  // students reachable only via assignedIslamiyyahLevels, not just conv.
+  const visibleStudents = useMemo(() => {
+    if (!isTeacher) return students.filter(s => s.status === "Active");
+    return students.filter(s => {
+      if (s.status !== "Active") return false;
+      if (visibleClasses.includes(s.conv)) return true;
+      const level = classToQLUSLevel(s.conv, s.isl);
+      return assignedIslamiyyahDirect.includes(level);
+    });
+  }, [students, isTeacher, visibleClasses, assignedIslamiyyahDirect]);
 
   const [tab,      setTab]     = useState("progress");
   const [level,    setLevel]   = useState(visibleLevels[0] || "Primary 1");
@@ -147,7 +155,7 @@ export default function IslamicStudies({ user }) {
               <Lbl c="QLUS LEVEL" />
               <select value={level} onChange={e=>setLevel(e.target.value)} style={ib}>
                 {visibleLevels.length === 0
-                  ? <option value="">— No classes assigned —</option>
+                  ? <option value="">— No classes or levels assigned —</option>
                   : visibleLevels.map(l=>(
                       <option key={l} value={l}>
                         {l} ({students.filter(s=>s.status==="Active"&&classToQLUSLevel(s.conv,s.isl)===l).length})
@@ -328,7 +336,7 @@ export default function IslamicStudies({ user }) {
                 </select>
                 {isTeacher && visibleStudents.length === 0 && (
                   <div style={{ fontSize:9, color:"#dc2626", marginTop:4 }}>
-                    No students in your assigned classes.
+                    No students in your assigned classes or Islamiyyah levels.
                   </div>
                 )}
               </div>
