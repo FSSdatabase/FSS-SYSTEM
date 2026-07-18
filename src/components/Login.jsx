@@ -2,9 +2,8 @@ import { useState } from "react";
 import { GraduationCap, Lock, Mail, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { NAVY, GOLD } from "../data/constants";
 
-// ── API CONFIG ───────────────────────────────────────────────────
-// Same Web App URL used everywhere else in the app.
 const FSS_API_URL = import.meta.env.VITE_GAS_URL || "";
+
 async function fssPost(action, payload) {
   const res = await fetch(FSS_API_URL, {
     method: "POST",
@@ -16,12 +15,21 @@ async function fssPost(action, payload) {
   return json.data;
 }
 
-const PinInput = ({ value, onChange, autoFocus }) => {
+// NOTE on "remember me": we deliberately do NOT store the email/PIN ourselves
+// in localStorage or anywhere else — the app already stores the PIN in
+// plaintext on the backend (an accepted small-staff tradeoff), and adding a
+// second plaintext copy client-side would only widen that exposure. Instead,
+// this form now carries the correct name/autoComplete attributes so the
+// BROWSER's own password manager (which encrypts saved credentials properly)
+// can offer to save and then autofill them — the standard, safer pattern.
+const PinInput = ({ value, onChange, autoFocus, autoComplete }) => {
   const [show, setShow] = useState(false);
   return (
     <div style={{ position: "relative" }}>
       <input
         type={show ? "text" : "password"}
+        name="pin"
+        autoComplete={autoComplete}
         inputMode="numeric"
         pattern="[0-9]*"
         maxLength={6}
@@ -50,7 +58,7 @@ export default function Login({ onLogin }) {
   const [email, setEmail]   = useState("");
   const [pin, setPin]       = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [stage, setStage]   = useState("email"); // email -> pin | setup -> done
+  const [stage, setStage]   = useState("email");
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
 
@@ -60,8 +68,6 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError(null);
     try {
-      // Attempt a login with a blank pin to discover account state.
-      // Backend returns needsPinSetup:true if this is a first login.
       const result = await fssPostRaw("login", { email: email.trim().toLowerCase(), pin: "__probe__" });
       if (result.needsPinSetup) {
         setStage("setup");
@@ -69,7 +75,6 @@ export default function Login({ onLogin }) {
         setStage("pin");
       }
     } catch (err) {
-      // "Incorrect PIN" still means the account exists with a PIN already set
       if (String(err.message).toLowerCase().includes("incorrect pin")) {
         setStage("pin");
       } else {
@@ -121,7 +126,6 @@ export default function Login({ onLogin }) {
         width: "100%", maxWidth: 380, background: "#fff", borderRadius: 16,
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden",
       }}>
-        {/* Header */}
         <div style={{ padding: "32px 32px 24px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
           <div style={{
             width: 52, height: 52, borderRadius: 14, background: GOLD, margin: "0 auto 14px",
@@ -133,17 +137,20 @@ export default function Login({ onLogin }) {
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>School Management System</div>
         </div>
 
-        {/* Body */}
         <div style={{ padding: "28px 32px 32px" }}>
 
+          {/* Using a real <form> with name/autoComplete on both fields —
+              browsers only reliably offer "Save password?" when email and
+              password-type fields sit inside the same form element, which
+              they already do here. */}
           {stage === "email" && (
-            <form onSubmit={handleEmailSubmit}>
+            <form onSubmit={handleEmailSubmit} autoComplete="on">
               <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
                 Staff Email
               </label>
               <div style={{ position: "relative", marginBottom: 18 }}>
                 <input
-                  type="email" autoFocus required value={email}
+                  type="email" name="email" autoComplete="email" autoFocus required value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@fss.edu.ng"
                   style={{
@@ -160,7 +167,11 @@ export default function Login({ onLogin }) {
           )}
 
           {stage === "pin" && (
-            <form onSubmit={handlePinLogin}>
+            <form onSubmit={handlePinLogin} autoComplete="on">
+              {/* Hidden email field so the browser's password manager
+                  associates the saved PIN with this exact email, and can
+                  autofill both together next time. */}
+              <input type="email" name="email" autoComplete="email" value={email} readOnly hidden />
               <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
                 Signed in as <strong style={{ color: NAVY }}>{email}</strong>
                 <button type="button" onClick={() => { setStage("email"); setPin(""); setError(null); }}
@@ -172,7 +183,7 @@ export default function Login({ onLogin }) {
                 Enter your PIN
               </label>
               <div style={{ marginBottom: 18 }}>
-                <PinInput value={pin} onChange={setPin} autoFocus />
+                <PinInput value={pin} onChange={setPin} autoFocus autoComplete="current-password" />
               </div>
               {error && <ErrorMsg text={error} />}
               <SubmitButton loading={loading} text="Log In" />
@@ -180,7 +191,8 @@ export default function Login({ onLogin }) {
           )}
 
           {stage === "setup" && (
-            <form onSubmit={handlePinSetup}>
+            <form onSubmit={handlePinSetup} autoComplete="on">
+              <input type="email" name="email" autoComplete="email" value={email} readOnly hidden />
               <div style={{
                 background: "#FDEBD0", borderRadius: 8, padding: "10px 12px",
                 fontSize: 12, color: "#9C5700", marginBottom: 16, fontWeight: 600,
@@ -191,13 +203,13 @@ export default function Login({ onLogin }) {
                 Choose a PIN
               </label>
               <div style={{ marginBottom: 14 }}>
-                <PinInput value={pin} onChange={setPin} autoFocus />
+                <PinInput value={pin} onChange={setPin} autoFocus autoComplete="new-password" />
               </div>
               <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
                 Confirm PIN
               </label>
               <div style={{ marginBottom: 18 }}>
-                <PinInput value={confirmPin} onChange={setConfirmPin} />
+                <PinInput value={confirmPin} onChange={setConfirmPin} autoComplete="new-password" />
               </div>
               {error && <ErrorMsg text={error} />}
               <SubmitButton loading={loading} text="Set PIN & Continue" />
@@ -234,7 +246,6 @@ function SubmitButton({ loading, text }) {
   );
 }
 
-// Raw post that doesn't throw on a "needs setup" or "incorrect pin" response shape
 async function fssPostRaw(action, payload) {
   const res = await fetch(FSS_API_URL, {
     method: "POST",
@@ -243,7 +254,6 @@ async function fssPostRaw(action, payload) {
   });
   const json = await res.json();
   if (json.success) return json.data;
-  // surface needsPinSetup flag even though success:false
   if (json.error && /first login/i.test(json.error)) {
     return { needsPinSetup: true };
   }
