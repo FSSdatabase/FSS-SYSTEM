@@ -18,19 +18,22 @@ export default function QuranTracker({ user }) {
   const isTeacher = user?.role === "teacher";
   const assignedConv = isTeacher ? parseAssigned(user?.assignedClasses) : CONV_CLASSES;
   const visibleClasses = isTeacher ? assignedConv : CONV_CLASSES;
+  // NEW: independent Islamiyyah assignment — for teachers whose Islamiyyah
+  // roster doesn't correspond to any conventional class they're assigned to.
+  const assignedIslamiyyahDirect = isTeacher ? parseAssigned(user?.assignedIslamiyyahLevels) : [];
 
-  // FIXED: previously derived from classToQLUSLevel(c) — conv code only — which
-  // could disagree with the real per-student filter below (which also checks
-  // isl). A student whose isl diverges from what conv alone predicts could be
-  // entirely invisible in the dropdown even though they're a real, scoped
-  // student. Now computed from the actual scoped students' real levels.
+  // visibleLevels is now the UNION of:
+  //  (a) real levels derived from students in the teacher's assigned conv classes, and
+  //  (b) levels explicitly listed in assignedIslamiyyahLevels.
+  // This covers both teacher types without disagreeing with the real roster.
   const visibleLevels = useMemo(() => {
     const scopedStudents = isTeacher
       ? students.filter(s => visibleClasses.includes(s.conv))
       : students;
-    const allowed = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
+    const fromConv = new Set(scopedStudents.map(s => classToQLUSLevel(s.conv, s.isl)));
+    const allowed = new Set([...fromConv, ...assignedIslamiyyahDirect]);
     return QLUS_LEVELS.filter(l => allowed.has(l));
-  }, [visibleClasses, students, isTeacher]);
+  }, [visibleClasses, students, isTeacher, assignedIslamiyyahDirect]);
 
   const [tab,      setTab]      = useState("tilawah");
   const [level,    setLevel]    = useState(visibleLevels[0] || "Primary 1");
@@ -115,7 +118,7 @@ export default function QuranTracker({ user }) {
           <Lbl c="QLUS LEVEL" />
           <select value={level} onChange={e => setLevel(e.target.value)} style={ib}>
             {visibleLevels.length === 0
-              ? <option value="">— No classes assigned —</option>
+              ? <option value="">— No classes or levels assigned —</option>
               : visibleLevels.map(l => (
                   <option key={l} value={l}>
                     {l} ({students.filter(s => s.status==="Active" && classToQLUSLevel(s.conv,s.isl)===l).length} students)
